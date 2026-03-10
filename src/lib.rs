@@ -14,9 +14,14 @@
 //! A minimal bot using Dyncord looks like this:
 //!
 //! ```
+//! use dyncord::{Bot, Intents};
+//! use dyncord::commands::Command;
+//! use dyncord::commands::context::CommandContext;
+//! 
 //! #[tokio::main]
 //! async fn main() {
 //!     let bot = Bot::new(())
+//!         .intents(Intents::GUILD_MESSAGES | INTENTS::MESSAGE_CONTENT)
 //!         .with_prefix(">")
 //!         .command(Command::new("hello", hello));
 //! 
@@ -97,7 +102,21 @@
 //!
 //! `"ping"` is the command's name, used to invoke the command. So in this case, sending `.ping` in
 //! a channel the bot has access to will trigger the command and make the bot reply with `pong`.
-//! Try it out to see it in action!
+//! 
+//! For message commands to run properly, the bot needs to have the `MESSAGE_CONTENT` intent
+//! enabled and any intents required to receive messages. For example, `GUILD_MESSAGES` for
+//! messages sent in servers.
+//! 
+//! Let's add those to our bot:
+//! 
+//! ```
+//! let bot = Bot::new(())
+//!     .intents(Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT)
+//!     .with_prefix(".")
+//!     .command(Command::new("ping", ping));
+//! ```
+//! 
+//! Now, when you send `.ping` in a channel the bot has access to, it will reply with `pong`. Good!
 //!
 //! Last for this quick start, let's see how to take arguments. Just add them to the handler
 //! function as normal arguments and they'll be parsed and passed to the handler when the command
@@ -128,6 +147,8 @@ pub mod commands;
 mod state;
 
 pub use bot::Bot;
+
+pub use twilight_gateway::Intents;
 
 /// A untility alias to boxed `Send + Sync` futures.
 pub(crate) type DynFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
