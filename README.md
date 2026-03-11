@@ -147,7 +147,7 @@ async fn on_message(ctx: EventContext<(), MessageCreate>) {
     println!("Received a message: {}", ctx.event.content);
 }
 
-let bot = Bot::new(()).on_event(on_message);
+let bot = Bot::new(()).on_event(On::message_create(on_message));
 ```
 
 # WIP

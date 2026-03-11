@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use dyncord::Bot;
 use dyncord::commands::Command;
 use dyncord::commands::context::CommandContext;
-use dyncord::events::{EventContext, MessageCreate};
+use dyncord::events::{EventContext, MessageCreate, On};
 use twilight_gateway::Intents;
 
 #[tokio::main]
@@ -16,7 +16,7 @@ async fn main() {
         .intents(Intents::MESSAGE_CONTENT)
         .command(Command::build("count", count_command))
         .command(Command::build("reset", reset_command))
-        .on_event(on_message);
+        .on_event(On::message_create(on_message));
 
     bot.run(env::var("TOKEN").unwrap()).await;
 }

@@ -7,7 +7,7 @@ use twilight_model::gateway::payload::outgoing::identify::IdentifyProperties;
 
 use crate::commands::prefixes::Prefixes;
 use crate::commands::{self, CommandBuilder, CommandGroupBuilder, CommandNode};
-use crate::events::{EventHandler, EventHandlerWithoutEvent, EventHandlerWrapper};
+use crate::events::{On, OnEvent};
 use crate::handle::Handle;
 use crate::state::StateBound;
 
@@ -20,7 +20,7 @@ where
     commands: Vec<CommandNode<State>>,
 
     /// The list of event handlers the bot will execute when an event is received.
-    events: Vec<Arc<dyn EventHandlerWithoutEvent<State>>>,
+    events: Vec<OnEvent<State>>,
 
     /// The bot's state, which can be any type you want (`Send + Sync + Clone`).
     state: State,
@@ -102,13 +102,8 @@ where
     ///
     /// Returns:
     /// [`Bot`] - The bot instance with the added event handler.
-    pub fn on_event<E, F>(mut self, handler: F) -> Self
-    where
-        F: EventHandler<State, E> + 'static,
-        EventHandlerWrapper<F, E>: EventHandlerWithoutEvent<State> + 'static,
-    {
-        self.events
-            .push(Arc::new(EventHandlerWrapper::new(handler)));
+    pub fn on_event(mut self, handler: OnEvent<State>) -> Self {
+        self.events.push(handler);
         self
     }
 
@@ -194,7 +189,7 @@ where
         let mut gateway = Shard::with_config(self.shard, config);
 
         if !self.commands.is_empty() {
-            self = self.on_event(commands::event::on_message);
+            self = self.on_event(On::message_create(commands::event::route_message));
         }
 
         while let Some(Ok(event)) = gateway.next_event(EventTypeFlags::all()).await {

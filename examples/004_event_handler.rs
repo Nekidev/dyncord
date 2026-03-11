@@ -1,6 +1,6 @@
 use std::env;
 
-use dyncord::events::{EventContext, MessageCreate};
+use dyncord::events::{EventContext, MessageCreate, On};
 use dyncord::{Bot, Intents};
 
 #[tokio::main]
@@ -8,7 +8,7 @@ async fn main() {
     let bot = Bot::new(())
         .intents(Intents::MESSAGE_CONTENT)
         .intents(Intents::GUILD_MESSAGES)
-        .on_event(on_message);
+        .on_event(On::message_create(on_message));
 
     bot.run(env::var("TOKEN").unwrap()).await;
 }

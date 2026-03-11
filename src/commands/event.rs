@@ -1,13 +1,16 @@
 use twilight_model::gateway::payload::incoming::MessageCreate;
 
 use crate::commands::context::CommandContext;
-use crate::commands::{self, parsing};
 use crate::commands::prefixes::PrefixesContext;
+use crate::commands::{self, parsing};
 use crate::events::EventContext;
 use crate::state::StateBound;
 
 /// Handles the invokation of message commands.
-pub(crate) async fn on_message<State>(ctx: EventContext<State, MessageCreate>)
+/// 
+/// When a [`MessageCreate`] event is received, this function checks if the message starts with any
+/// of the bot's registered commands and invokes it.
+pub(crate) async fn route_message<State>(ctx: EventContext<State, MessageCreate>)
 where
     State: StateBound,
 {

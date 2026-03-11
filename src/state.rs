@@ -99,7 +99,7 @@
 //! let bot = Bot::new(CounterState::default())
 //!     .intents(Intents::GUILD_MESSAGES)
 //!     .intents(Intents::MESSAGE_CONTENT)
-//!     .on_event(on_message);  // Don't forget to add the event handler to the bot instance!
+//!     .on_event(On::message_create(on_message));  // Don't forget to add the event handler to the bot instance!
 //! ```
 //! 
 //! Finally, let's add a command to check the current message count. We'll create a simple command
@@ -120,7 +120,7 @@
 //!     .intents(Intents::MESSAGE_CONTENT)
 //!     .with_prefix("!")
 //!     .command(Command::new("count", count_command))
-//!     .on_event(on_message);
+//!     .on_event(On::message_create(on_message));
 //! 
 //! bot.run("your_token_here").await.unwrap();
 //! ```
