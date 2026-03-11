@@ -113,7 +113,8 @@ Let's add those to our bot:
 
 ```rust
 let bot = Bot::new(())
-    .intents(Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT)
+    .intents(Intents::GUILD_MESSAGES)
+    .intents(Intents::MESSAGE_CONTENT)
     .with_prefix(".")
     .command(Command::build("ping", ping));
 ```
