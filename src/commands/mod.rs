@@ -291,6 +291,16 @@ where
         self
     }
 
+    /// Gets a list of all the command's identifiers, which are the command's name and its aliases.
+    /// 
+    /// Returns:
+    /// `Vec<String>` - A list of all the command's identifiers.
+    pub(crate) fn identifiers(&self) -> Vec<String> {
+        let mut identifiers = vec![self.name.clone()];
+        identifiers.extend(self.aliases.clone());
+        identifiers
+    }
+
     /// Runs the command handler.
     ///
     /// Arguments:

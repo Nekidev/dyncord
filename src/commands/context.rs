@@ -16,6 +16,15 @@ where
 
     /// The internal handle, used to interact with the [`Bot`](crate::Bot) and the Discord API.
     pub handle: Handle<State>,
+
+    /// The name used to invoke this command.
+    pub command_identifier: String,
+
+    /// The prefix used to invoke this command.
+    pub command_prefix: String,
+
+    /// The raw arguments passed to the command, without the prefix and command name.
+    pub command_args: String,
 }
 
 impl<State> CommandContext<State>

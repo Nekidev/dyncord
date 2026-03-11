@@ -22,12 +22,19 @@ where
         'prefixes: for prefix in prefixes {
             match parsing::parse(&prefix, &ctx.event.content) {
                 Some(parts) => {
+                    let command_prefix = prefix.to_string();
+                    let command_identifier = parts.command_name.to_string();
+                    let command_args = parts.command_args.to_string();
+
                     for command in &*ctx.handle.commands {
-                        if command.name == parts.command_name {
+                        if command.identifiers().contains(&command_identifier) {
                             let ctx = CommandContext {
                                 event: ctx.event.clone(),
                                 state: ctx.state.clone(),
                                 handle: ctx.handle.clone(),
+                                command_identifier,
+                                command_prefix,
+                                command_args,
                             };
 
                             command.run(ctx, parts.command_args).await;
