@@ -29,8 +29,8 @@
 //! async fn dummy_command(_ctx: CommandContext) {}
 //! ```
 //! 
-//! Check out the [example](../examples/005_builtin_help.rs) for a more complete example of how to
-//! use the help command.
+//! Check out the [example](../source/examples/005_builtin_help.rs) for a more complete example of
+//! how to use the help command.
 
 use crate::commands::context::CommandContext;
 use crate::commands::{self, Command, CommandGroup};
