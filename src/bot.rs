@@ -96,6 +96,15 @@ where
     }
 
     /// Adds an event handler to the bot's event handlers list.
+    /// 
+    /// For example, to add a handler for the `MessageCreate` event, you can do:
+    /// ```
+    /// Bot::new(()).on_event(On::message_create(on_message));
+    /// 
+    /// async fn on_message(ctx: EventContext<State, MessageCreate>) {
+    ///     // Handle the message create event.
+    /// }
+    /// ```
     ///
     /// Arguments:
     /// * `handler` - The event handler to add to the bot's event handlers list.
