@@ -94,7 +94,10 @@
 //!
 //! Currently, only a few types are supported as arguments natively:
 //!
-//! - `String` - A single word argument.
+//! - `String` - A single-word argument, or a quoted string. E.g. `!command hello` -> `hello`,
+//!   `!command hello world` -> `hello`, `!command "hello world"` -> `hello world`,
+//!   `!command 'Someone\'s cat'` -> `Someone's cat`, `!command 'hello world` -> `'hello`,
+//!   `!command \'hello\'` -> `'hello'`.
 //! - [`GreedyString`](arguments::GreedyString) - A string that consumes all remaining raw
 //!   arguments.
 //! - `char` - A single character argument. The argument must be a single character long, otherwise

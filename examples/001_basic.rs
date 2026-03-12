@@ -16,6 +16,6 @@ async fn main() {
     bot.run(env::var("TOKEN").unwrap()).await;
 }
 
-async fn hello(ctx: CommandContext, name: String) {
-    ctx.send(format!("Hello, {name}!")).await.unwrap();
+async fn hello(ctx: CommandContext, name: String, age: u32) {
+    ctx.send(format!("Hello, {name} who's {age} years old!")).await.unwrap();
 }
