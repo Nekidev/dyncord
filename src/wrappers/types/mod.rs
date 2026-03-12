@@ -1,4 +1,4 @@
-//! A set of pretty wrappers around core twilight types.
+//! A set of pretty wrappers around twilight types.
 //! 
 //! The builders in this module are designed to provide a more ergonomic interface for creating and
 //! sending messages, embeds, and other Discord objects. We do not currently have wrappers for all

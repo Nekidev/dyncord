@@ -1,7 +1,8 @@
 use twilight_model::gateway::payload::incoming::MessageCreate;
 
-use crate::handle::{Handle, SendMessage};
+use crate::handle::Handle;
 use crate::state::StateBound;
+use crate::wrappers::actions::message_create::CreateMessage;
 
 #[derive(Clone)]
 pub struct CommandContext<State = ()>
@@ -37,8 +38,8 @@ where
     /// * `content` - The content of the message to send.
     ///
     /// Returns:
-    /// [`SendMessage`] - A message builder that is awaited to send the message.
-    pub fn send(&self, content: impl Into<String>) -> SendMessage {
+    /// [`CreateMessage`] - A message builder that is awaited to send the message.
+    pub fn send(&self, content: impl Into<String>) -> CreateMessage {
         self.handle.send(self.event.channel_id, content.into())
     }
 
@@ -51,8 +52,8 @@ where
     /// * `content` - The content of the message to send.
     ///
     /// Returns:
-    /// [`SendMessage`] - A message builder that is awaited to send the message.
-    pub fn reply(&self, content: impl Into<String>) -> SendMessage {
+    /// [`CreateMessage`] - A message builder that is awaited to send the message.
+    pub fn reply(&self, content: impl Into<String>) -> CreateMessage {
         self.handle
             .send(self.event.channel_id, content.into())
             .reply(self.event.id)

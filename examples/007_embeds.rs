@@ -1,6 +1,6 @@
 use std::env;
 
-use dyncord::builders::embeds::{Embed, EmbedField};
+use dyncord::wrappers::types::embeds::{Embed, EmbedField};
 use dyncord::commands::Command;
 use dyncord::commands::context::CommandContext;
 use dyncord::events::{EventContext, On, Ready};

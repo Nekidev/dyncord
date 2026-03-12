@@ -8,7 +8,7 @@ pub mod builtin;
 pub mod commands;
 pub mod events;
 pub mod handle;
-pub mod builders;
+pub mod wrappers;
 pub mod state;
 
 pub use bot::Bot;
