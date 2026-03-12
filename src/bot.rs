@@ -181,12 +181,6 @@ where
     ///
     /// Arguments:
     /// * `token` - The token used to authenticate the bot with the Discord API.
-    ///
-    /// Panics:
-    /// * If you set commands but didn't set prefixes. Message commands require prefixes to work,
-    ///   so if you set commands without setting prefixes, the bot will panic to prevent you from
-    ///   running a bot that won't respond to any commands. To fix this, use [`Bot::with_prefix()`]
-    ///   to set prefixes for your bot before calling [`Bot::run()`].
     pub async fn run(mut self, token: impl Into<String>) {
         let token = token.into();
         let handle = self.handle(token.clone());
