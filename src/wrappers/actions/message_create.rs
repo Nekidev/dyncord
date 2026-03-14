@@ -1,21 +1,16 @@
 //! A wrapper around sending messages.
 
-use thiserror::Error;
-use twilight_model::{channel::{Message, message::Embed}, id::{Id, marker::{ChannelMarker, MessageMarker}}};
+use twilight_model::channel::Message;
+use twilight_model::channel::message::Embed;
+use twilight_model::id::Id;
+use twilight_model::id::marker::{ChannelMarker, MessageMarker};
 
-use crate::{DynFuture, aliases::DiscordClient};
-
-#[derive(Debug, Error)]
-pub enum CreationError {
-    #[error("An error occurred while sending the message: {0}")]
-    Twilight(#[from] twilight_http::Error),
-
-    #[error("An error occurred while parsing the response from the Discord API: {0}")]
-    TwilightParsing(#[from] twilight_http::response::DeserializeBodyError),
-}
+use crate::aliases::DiscordClient;
+use crate::utils::DynFuture;
+use crate::wrappers::TwilightError;
 
 /// A builder for sending a message.
-pub struct CreateMessage {
+pub struct MessageCreate {
     /// The HTTP client to use for sending the message.
     client: DiscordClient,
 
@@ -32,7 +27,7 @@ pub struct CreateMessage {
     embeds: Vec<Embed>,
 }
 
-impl CreateMessage {
+impl MessageCreate {
     pub(crate) fn new(
         client: DiscordClient,
         channel_id: Id<ChannelMarker>,
@@ -53,7 +48,7 @@ impl CreateMessage {
     /// * `message_id` - The ID of the message to reply to.
     ///
     /// Returns:
-    /// [`SendMessage`] - The message builder with the reply set.
+    /// [`MessageCreate`] - The message builder with the reply set.
     pub fn reply(mut self, message_id: Id<MessageMarker>) -> Self {
         self.replying_to = Some(message_id);
         self
@@ -65,7 +60,7 @@ impl CreateMessage {
     /// * `embed` - The embed to add to the message.
     ///
     /// Returns:
-    /// [`SendMessage`] - The message builder with the embed added.
+    /// [`MessageCreate`] - The message builder with the embed added.
     pub fn embed(mut self, embed: impl Into<Embed>) -> Self {
         self.embeds.push(embed.into());
         self
@@ -76,7 +71,7 @@ impl CreateMessage {
     /// Returns:
     /// * `Ok(Message)` - The message that was sent.
     /// * `Err(SendingError)` - An error that occurred while sending the message.
-    async fn send(self) -> Result<Message, CreationError> {
+    async fn send(self) -> Result<Message, TwilightError> {
         let mut builder = self
             .client
             .create_message(self.channel_id)
@@ -91,8 +86,8 @@ impl CreateMessage {
     }
 }
 
-impl IntoFuture for CreateMessage {
-    type Output = Result<Message, CreationError>;
+impl IntoFuture for MessageCreate {
+    type Output = Result<Message, TwilightError>;
     type IntoFuture = DynFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {

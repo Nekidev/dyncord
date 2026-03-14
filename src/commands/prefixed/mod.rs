@@ -156,14 +156,14 @@
 //! prefix used, the author, channel, guild, your bot's state, and more. It also provides some
 //! utility functions to interact with the Discord API, such as sending messages.
 //!
-//! The [`CommandContext<State>`] is the required first argument of all command handlers. It takes
+//! The [`PrefixedContext<State>`] is the required first argument of all command handlers. It takes
 //! a generic `State` type which is the same as the one used in your bot, or `()` by default when
 //! you don't need any state.
 //!
-//! To send a message in the same channel the command was executed, use [`CommandContext::send()`]:
+//! To send a message in the same channel the command was executed, use [`PrefixedContext::send()`]:
 //!
 //! ```
-//! async fn hello(ctx: CommandContext) {
+//! async fn hello(ctx: PrefixedContext) {
 //!     ctx.send("Hello, world!").await.unwrap();
 //! }
 //! ```
@@ -175,22 +175,23 @@
 //! entertainment commands together. Dyncord supports this with command groups, which are just a
 //! collection of commands, and optionally more subgroups.
 //!
-//! You can create a [`CommandGroup`] with similar fields to [`Command`], and add commands to it
-//! like you do to your [`Bot`](crate::Bot).
+//! You can create a [`CommandGroup`](crate::commands::CommandGroup) with similar fields to
+//! [`Command`](crate::commands::Command), and add commands to it like you do to your
+//! [`Bot`](crate::Bot).
 //!
 //! ```
 //! let bot = Bot::new(())
-//!     .command(Command::build("help", help_command))
+//!     .command(Command::prefixed("help", help_command))
 //!     .nest(
-//!         CommandGroup::build("admin")
-//!             .command(Command::build("ban", ban_command))
-//!             .command(Command::build("kick", kick_command))
-//!             .command(Command::build("mute", mute_command))
+//!         CommandGroup::prefixed("admin")
+//!             .command(Command::prefixed("ban", ban_command))
+//!             .command(Command::prefixed("kick", kick_command))
+//!             .command(Command::prefixed("mute", mute_command))
 //!     )
 //!     .nest(
-//!         CommandGroup::build("fun")
-//!             .command(Command::build("joke", joke_command))
-//!             .command(Command::build("meme", meme_command))
+//!         CommandGroup::prefixed("fun")
+//!             .command(Command::prefixed("joke", joke_command))
+//!             .command(Command::prefixed("meme", meme_command))
 //!     );
 //! ```
 //!
@@ -209,12 +210,12 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::DynFuture;
-use crate::commands::CommandNode;
 use crate::commands::prefixed::arguments::IntoArgument;
 use crate::commands::prefixed::context::PrefixedContext;
 use crate::commands::prefixed::errors::CommandError;
+use crate::commands::{CommandGroupIntoCommandNode, CommandNode};
 use crate::state::StateBound;
+use crate::utils::DynFuture;
 
 /// A trait for types that can be converted into a list of command aliases.
 pub trait IntoAliases {
@@ -334,7 +335,8 @@ where
     }
 }
 
-/// A builder for [`Command`] that allows setting optional fields like aliases, summary, and description.
+/// A builder for [`PrefixedCommand`] that allows setting optional fields like aliases, summary,
+/// and description.
 pub struct PrefixedCommandBuilder<State>
 where
     State: StateBound,
@@ -381,7 +383,7 @@ where
     ///   of strings, or an array of string slices.
     ///
     /// Returns:
-    /// [`CommandBuilder`] - The command builder with the added aliases.
+    /// [`PrefixedCommandBuilder`] - The command builder with the added aliases.
     pub fn aliases(mut self, aliases: impl IntoAliases) -> Self {
         self.aliases = aliases.into_aliases();
         self
@@ -393,7 +395,7 @@ where
     /// * `summary` - The command's summary.
     ///
     /// Returns:
-    /// [`CommandBuilder`] - The command builder with the set summary.
+    /// [`PrefixedCommandBuilder`] - The command builder with the set summary.
     pub fn summary(mut self, summary: impl Into<String>) -> Self {
         self.summary = Some(summary.into());
         self
@@ -406,7 +408,7 @@ where
     /// * `description` - The command's description.
     ///
     /// Returns:
-    /// [`CommandBuilder`] - The command builder with the set description.
+    /// [`PrefixedCommandBuilder`] - The command builder with the set description.
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.description = Some(description.into());
         self
@@ -415,7 +417,7 @@ where
     /// Builds the command, consuming the builder and returning a [`Command`] with the set fields.
     ///
     /// Returns:
-    /// [`Command`] - A command with the set fields from the builder.
+    /// [`PrefixedCommand`] - A command with the set fields from the builder.
     pub(crate) fn build(self) -> PrefixedCommand<State> {
         PrefixedCommand {
             name: self.name,
@@ -682,7 +684,7 @@ where
     /// * `name` - The name of the group.
     ///
     /// Returns:
-    /// [`CommandGroupBuilder`] - A new command group builder with the given name.
+    /// [`PrefixedCommandGroupBuilder`] - A new command group builder with the given name.
     pub fn build(name: impl Into<String>) -> PrefixedCommandGroupBuilder<State> {
         PrefixedCommandGroupBuilder::new(name)
     }
@@ -709,7 +711,7 @@ where
     /// * `name` - The name of the group.
     ///
     /// Returns:
-    /// [`CommandGroupBuilder`] - A new command group builder with the given name.
+    /// [`PrefixedCommandGroupBuilder`] - A new command group builder with the given name.
     pub(crate) fn new(name: impl Into<String>) -> Self {
         PrefixedCommandGroupBuilder {
             name: name.into(),
@@ -725,7 +727,7 @@ where
     /// * `summary` - The group's summary.
     ///
     /// Returns:
-    /// [`CommandGroupBuilder`] - The command group builder with the set summary.
+    /// [`PrefixedCommandGroupBuilder`] - The command group builder with the set summary.
     pub fn summary(mut self, summary: impl Into<String>) -> Self {
         self.summary = Some(summary.into());
         self
@@ -737,7 +739,7 @@ where
     /// * `description` - The group's description.
     ///
     /// Returns:
-    /// [`CommandGroupBuilder`] - The command group builder with the set description.
+    /// [`PrefixedCommandGroupBuilder`] - The command group builder with the set description.
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.description = Some(description.into());
         self
@@ -749,7 +751,7 @@ where
     /// * `command` - The command to add as a child of this group.
     ///
     /// Returns:
-    /// [`CommandGroupBuilder`] - The command group builder with the added command.
+    /// [`PrefixedCommandGroupBuilder`] - The command group builder with the added command.
     pub fn command(mut self, command: PrefixedCommandBuilder<State>) -> Self {
         self.children
             .push(CommandNode::PrefixedCommand(command.build()));
@@ -762,18 +764,18 @@ where
     /// * `group` - The subgroup to add as a child of this group.
     ///
     /// Returns:
-    /// [`CommandGroupBuilder`] - The command group builder with the added subgroup.
+    /// [`PrefixedCommandGroupBuilder`] - The command group builder with the added subgroup.
     pub fn nest(mut self, group: PrefixedCommandGroupBuilder<State>) -> Self {
         self.children
             .push(CommandNode::PrefixedCommandGroup(group.build()));
         self
     }
 
-    /// Builds the command group, consuming the builder and returning a [`CommandGroup`] with the
-    /// set fields.
+    /// Builds the command group, consuming the builder and returning a [`PrefixedCommandGroup`]
+    /// with the set fields.
     ///
     /// Returns:
-    /// [`CommandGroup`] - A command group with the set fields from the builder.
+    /// [`PrefixedCommandGroup`] - A command group with the set fields from the builder.
     pub(crate) fn build(self) -> PrefixedCommandGroup<State> {
         PrefixedCommandGroup {
             name: self.name,
@@ -781,5 +783,23 @@ where
             description: self.description,
             children: self.children,
         }
+    }
+}
+
+impl<State> CommandGroupIntoCommandNode<State> for PrefixedCommandGroup<State>
+where
+    State: StateBound,
+{
+    fn into_command_node(self) -> CommandNode<State> {
+        CommandNode::PrefixedCommandGroup(self)
+    }
+}
+
+impl<State> CommandGroupIntoCommandNode<State> for PrefixedCommandGroupBuilder<State>
+where
+    State: StateBound,
+{
+    fn into_command_node(self) -> CommandNode<State> {
+        CommandNode::PrefixedCommandGroup(self.build())
     }
 }

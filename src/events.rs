@@ -35,16 +35,16 @@
 //!     .intents(Intents::MESSAGE_CONTENT)
 //!     .on_event(On::message_create(on_message));
 //! ```
-//! 
+//!
 //! To handle all incoming events, you can use the [`On::event`] handler, which will receive every
 //! event as an [`Event`]. For example:
-//! 
+//!
 //! ```
 //! let bot = Bot::new(())
 //!     .intents(Intents::GUILD_MESSAGES)
 //!     .intents(Intents::MESSAGE_CONTENT)
 //!     .on_event(On::event(on_event));
-//! 
+//!
 //! async fn on_event(ctx: EventContext<(), Event>) {
 //!     // Handle the event.
 //! }
@@ -71,9 +71,9 @@ pub use twilight_model::gateway::payload::incoming::{
     WebhooksUpdate,
 };
 
-use crate::DynFuture;
 use crate::handle::Handle;
 use crate::state::StateBound;
+use crate::utils::DynFuture;
 
 #[derive(Clone)]
 pub struct EventContext<State, E>

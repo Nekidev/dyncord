@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use thiserror::Error;
 
-use crate::DynFuture;
 use crate::commands::prefixed::context::PrefixedContext;
 use crate::state::StateBound;
+use crate::utils::DynFuture;
 
 /// An error occurred while parsing an argument for a command.
 #[derive(Debug, Error)]

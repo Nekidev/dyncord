@@ -1,18 +1,14 @@
 #![doc = include_str!("../README.md")]
 
-use std::pin::Pin;
-
 mod aliases;
 mod bot;
 pub mod builtin;
 pub mod commands;
 pub mod events;
 pub mod handle;
-pub mod wrappers;
 pub mod state;
+pub mod utils;
+pub mod wrappers;
 
 pub use bot::Bot;
 pub use twilight_gateway::Intents;
-
-/// A untility alias to boxed `Send + Sync` futures.
-pub type DynFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;

@@ -9,7 +9,9 @@ use twilight_model::gateway::payload::outgoing::identify::IdentifyProperties;
 use crate::commands::prefixed::prefixes::Prefixes;
 use crate::commands::prefixed::{self, PrefixedCommandGroupBuilder};
 use crate::commands::slash::InvalidCommandError;
-use crate::commands::{self, CommandIntoCommandNode, CommandNode, slash};
+use crate::commands::{
+    self, CommandGroupIntoCommandNode, CommandIntoCommandNode, CommandNode, slash,
+};
 use crate::events::{On, OnEvent};
 use crate::handle::Handle;
 use crate::state::StateBound;
@@ -93,9 +95,8 @@ where
     ///
     /// Returns:
     /// [`Bot`] - The bot instance with the added command group.
-    pub fn nest(mut self, group: PrefixedCommandGroupBuilder<State>) -> Self {
-        self.commands
-            .push(CommandNode::PrefixedCommandGroup(group.build()));
+    pub fn nest(mut self, group: impl CommandGroupIntoCommandNode<State>) -> Self {
+        self.commands.push(group.into_command_node());
         self
     }
 

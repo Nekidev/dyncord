@@ -1,3 +1,5 @@
+//! Slash command argument builders and parsers.
+
 use std::collections::HashMap;
 
 use thiserror::Error;
@@ -6,14 +8,29 @@ use twilight_model::application::interaction::application_command::{
     CommandDataOption, CommandOptionValue,
 };
 
+use crate::commands::slash::context::SlashContext;
+use crate::state::StateBound;
+use crate::utils::{DynFuture, pinbox};
+
+/// A unified API to build slash-command argument metadata.
+///
+/// It has multiple associated functions, one per type of argument that can be built.
 pub struct Argument;
 
 impl Argument {
+    /// Initializes a string argument builder.
+    ///
+    /// Arguments:
+    /// * `name` - The argument's name, between 1 and 32 characters long.
+    ///
+    /// Returns:
+    /// [`StringArgumentBuilder`] - The new string argument builder.
     pub fn string(name: impl Into<String>) -> StringArgumentBuilder {
         StringArgumentBuilder::new(name)
     }
 }
 
+/// Slash-command argument metadata.
 #[derive(Clone)]
 pub enum ArgumentMeta {
     String(StringArgument),
@@ -21,6 +38,10 @@ pub enum ArgumentMeta {
 }
 
 impl ArgumentMeta {
+    /// Returns the inner value's argument name.
+    /// 
+    /// Returns:
+    /// [`&String`] -> The inner value's argument name.
     pub fn name(&self) -> &String {
         match self {
             Self::String(inner) => &inner.name,
@@ -28,6 +49,10 @@ impl ArgumentMeta {
         }
     }
 
+    /// Returns the argument type of the current argument.
+    /// 
+    /// Returns:
+    /// [`ArgumentType`] - The current argument's type.
     pub fn r#type(&self) -> ArgumentType {
         match self {
             Self::String(_) => ArgumentType::String,
@@ -45,6 +70,7 @@ impl From<ArgumentMeta> for CommandOption {
     }
 }
 
+/// Slash-command argument types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArgumentType {
     String,
@@ -284,7 +310,7 @@ impl From<OptionalStringArgumentBuilder> for ArgumentMeta {
 }
 
 #[derive(Debug, Error)]
-pub enum TakingError {
+pub enum ArgumentError {
     #[error("An argument was received, but its value was not of the expected type.")]
     IncorrectType,
 
@@ -295,28 +321,56 @@ pub enum TakingError {
         "An argument was internally queried since we got a slash command invocation, but the argument's metadata was missing."
     )]
     MissingMeta,
+
+    #[error("An argument had the correct Discord-native type, but the value passed was invalid.")]
+    InvalidValue,
 }
 
-pub trait IntoArgument: Sized + Send + Sync {
-    type Meta: Into<ArgumentMeta>;
+pub trait IntoArgument<State>: Sized + Send + Sync
+where
+    State: StateBound,
+{
+    /// Converts a raw twilight [`CommandDataOption`] into the type taken by slash command handlers
+    /// as arguments.
+    ///
+    /// Arguments:
+    /// * `ctx` - The slash command context of the current command execution.
+    /// * `argument` - The argument being parsed, or [`None`] if the argument was declared but not
+    ///   received.
+    ///
+    /// Returns:
+    /// [`Result<Self, ArgumentError>`] - The parsed primitive, or an error if it failed to be
+    /// parsed.
+    fn into_argument_primitive(
+        ctx: SlashContext<State>,
+        argument: Option<CommandDataOption>,
+    ) -> DynFuture<'static, Result<Self, ArgumentError>>;
 
-    fn into_argument_primitive(argument: Option<CommandDataOption>) -> Result<Self, TakingError>;
-
+    /// The type of the argument from which this type is parsed.
+    ///
+    /// This is used to make sure commands have been configured correctly when starting the bot.
+    ///
+    /// Returns:
+    /// [`ArgumentType`] - The Discord-native type of the argument being parsed.
     fn r#type() -> ArgumentType;
 }
 
-impl IntoArgument for String {
-    type Meta = StringArgument;
-
-    fn into_argument_primitive(argument: Option<CommandDataOption>) -> Result<Self, TakingError> {
+impl<State> IntoArgument<State> for String
+where
+    State: StateBound,
+{
+    fn into_argument_primitive(
+        _ctx: SlashContext<State>,
+        argument: Option<CommandDataOption>,
+    ) -> DynFuture<'static, Result<Self, ArgumentError>> {
         if let Some(argument) = argument {
             if let CommandOptionValue::String(value) = argument.value {
-                Ok(value)
+                pinbox(Ok(value))
             } else {
-                Err(TakingError::IncorrectType)
+                pinbox(Err(ArgumentError::IncorrectType))
             }
         } else {
-            Err(TakingError::Missing)
+            pinbox(Err(ArgumentError::Missing))
         }
     }
 
@@ -325,18 +379,22 @@ impl IntoArgument for String {
     }
 }
 
-impl IntoArgument for Option<String> {
-    type Meta = OptionalStringArgument;
-
-    fn into_argument_primitive(argument: Option<CommandDataOption>) -> Result<Self, TakingError> {
+impl<State> IntoArgument<State> for Option<String>
+where
+    State: StateBound,
+{
+    fn into_argument_primitive(
+        _ctx: SlashContext<State>,
+        argument: Option<CommandDataOption>,
+    ) -> DynFuture<'static, Result<Self, ArgumentError>> {
         if let Some(argument) = argument {
             if let CommandOptionValue::String(value) = argument.value {
-                Ok(Some(value))
+                pinbox(Ok(Some(value)))
             } else {
-                Err(TakingError::IncorrectType)
+                pinbox(Err(ArgumentError::IncorrectType))
             }
         } else {
-            Ok(None)
+            pinbox(Ok(None))
         }
     }
 

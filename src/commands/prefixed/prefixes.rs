@@ -4,6 +4,7 @@ use std::pin::Pin;
 use twilight_model::gateway::payload::incoming::MessageCreate;
 
 use crate::state::StateBound;
+use crate::utils::pinbox;
 
 /// The context passed to the bot's prefix getter.
 ///
@@ -35,10 +36,6 @@ where
         &self,
         context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = Vec<String>> + Send + '_>>;
-}
-
-fn pinbox(prefixes: Vec<String>) -> Pin<Box<dyn Future<Output = Vec<String>> + Send + 'static>> {
-    Box::pin(async move { prefixes })
 }
 
 impl<State> Prefixes<State> for &str

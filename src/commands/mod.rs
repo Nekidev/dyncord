@@ -313,7 +313,7 @@ impl CommandGroup {
 }
 
 /// Converts all command group types (slash, prefixed) and their builder types into a command node.
-pub trait ComamdGroupIntoCommandNode<State>
+pub trait CommandGroupIntoCommandNode<State>
 where
     State: StateBound,
 {

@@ -1,8 +1,8 @@
-use twilight_model::gateway::payload::incoming::MessageCreate;
+use twilight_model::gateway::payload::incoming::MessageCreate as TwilightMessageCreate;
 
 use crate::handle::Handle;
 use crate::state::StateBound;
-use crate::wrappers::actions::message_create::CreateMessage;
+use crate::wrappers::actions::message_create::MessageCreate;
 
 #[derive(Clone)]
 pub struct PrefixedContext<State = ()>
@@ -13,7 +13,7 @@ where
     pub state: State,
 
     /// The event that triggered the execution of this command.
-    pub event: MessageCreate,
+    pub event: TwilightMessageCreate,
 
     /// The internal handle, used to interact with the [`Bot`](crate::Bot) and the Discord API.
     pub handle: Handle<State>,
@@ -38,8 +38,8 @@ where
     /// * `content` - The content of the message to send.
     ///
     /// Returns:
-    /// [`CreateMessage`] - A message builder that is awaited to send the message.
-    pub fn send(&self, content: impl Into<String>) -> CreateMessage {
+    /// [`MessageCreate`] - A message builder that is awaited to send the message.
+    pub fn send(&self, content: impl Into<String>) -> MessageCreate {
         self.handle.send(self.event.channel_id, content.into())
     }
 
@@ -52,8 +52,8 @@ where
     /// * `content` - The content of the message to send.
     ///
     /// Returns:
-    /// [`CreateMessage`] - A message builder that is awaited to send the message.
-    pub fn reply(&self, content: impl Into<String>) -> CreateMessage {
+    /// [`MessageCreate`] - A message builder that is awaited to send the message.
+    pub fn reply(&self, content: impl Into<String>) -> MessageCreate {
         self.handle
             .send(self.event.channel_id, content.into())
             .reply(self.event.id)

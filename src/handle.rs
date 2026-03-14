@@ -3,10 +3,10 @@
 //! The [`Handle`] struct provides methods to interact with the Discord API and the bot's internal
 //! state (not your custom state type). Currently, it only contains a vector of commands and a
 //! method to send messages. It's usually proxied to by contexts, such as in
-//! [`CommandContext::send()`](crate::commands::context::CommandContext::send) where it is used to
-//! send messages to the channel the command was run in.
+//! [`PrefixedContext::send()`](crate::commands::prefixed::context::PrefixedContext::send) where it
+//! is used to send messages to the channel the command was run in.
 //!
-//! To send messages, you can use the [`Handle::send()`] method, which returns a [`SendMessage`]
+//! To send messages, you can use the [`Handle::send()`] method, which returns a [`MessageCreate`]
 //! builder that is awaited to send the message. For example, in a command function:
 //!
 //! ```
@@ -27,7 +27,7 @@ use crate::aliases::DiscordClient;
 use crate::commands::CommandNode;
 use crate::commands::prefixed::prefixes::Prefixes;
 use crate::state::StateBound;
-use crate::wrappers::actions::message_create::CreateMessage;
+use crate::wrappers::actions::message_create::MessageCreate;
 
 /// A handle to interact with the bot's internal state and the Discord API.
 ///
@@ -58,8 +58,8 @@ where
     /// * `content` - The content of the message to send.
     ///
     /// Returns:
-    /// [`CreateMessage`] - A message builder that can be used to send the message.
-    pub fn send(&self, channel_id: Id<ChannelMarker>, content: impl Into<String>) -> CreateMessage {
-        CreateMessage::new(self.client.clone(), channel_id, content)
+    /// [`MessageCreate`] - A message builder that can be used to send the message.
+    pub fn send(&self, channel_id: Id<ChannelMarker>, content: impl Into<String>) -> MessageCreate {
+        MessageCreate::new(self.client.clone(), channel_id, content)
     }
 }

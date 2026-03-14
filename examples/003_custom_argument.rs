@@ -4,6 +4,7 @@ use dyncord::Bot;
 use dyncord::commands::Command;
 use dyncord::commands::prefixed::arguments::{IntoArgument, ParsingError};
 use dyncord::commands::prefixed::context::PrefixedContext;
+use dyncord::utils::DynFuture;
 use twilight_gateway::Intents;
 
 #[tokio::main]
@@ -43,7 +44,7 @@ impl IntoArgument<()> for Name {
     fn into_argument(
         _ctx: PrefixedContext<()>,
         args: String,
-    ) -> dyncord::DynFuture<'static, Result<(Self, String), ParsingError>> {
+    ) -> DynFuture<'static, Result<(Self, String), ParsingError>> {
         Box::pin(async move {
             let mut parts = args.splitn(3, ' ').collect::<Vec<&str>>();
 
