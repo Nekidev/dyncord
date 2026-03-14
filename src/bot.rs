@@ -7,10 +7,9 @@ use twilight_http::Client;
 use twilight_model::gateway::payload::outgoing::identify::IdentifyProperties;
 
 use crate::commands::prefixed::prefixes::Prefixes;
-use crate::commands::prefixed::{self, PrefixedCommandGroupBuilder};
 use crate::commands::slash::InvalidCommandError;
 use crate::commands::{
-    self, CommandGroupIntoCommandNode, CommandIntoCommandNode, CommandNode, slash,
+    self, CommandGroupIntoCommandNode, CommandIntoCommandNode, CommandNode, prefixed, slash,
 };
 use crate::events::{On, OnEvent};
 use crate::handle::Handle;
