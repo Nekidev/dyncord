@@ -210,6 +210,7 @@ use crate::commands::errors::ArgumentError;
 use crate::commands::slash::arguments::{ArgumentMeta, ArgumentType, IntoArgument};
 use crate::commands::slash::context::SlashContext;
 use crate::commands::{CommandGroupIntoCommandNode, CommandNode, CommandResult};
+use crate::errors::{ErrorHandler, ErrorHandlerWithoutType, ErrorHandlerWrapper};
 use crate::state::StateBound;
 use crate::utils::DynFuture;
 
@@ -228,6 +229,8 @@ where
     handler: Arc<dyn SlashCommandHandlerWithoutArgs<State>>,
 
     arguments: Vec<ArgumentMeta>,
+
+    on_errors: Vec<Arc<dyn ErrorHandlerWithoutType<State>>>,
 }
 
 impl<State> From<SlashCommand<State>> for Command
@@ -270,6 +273,8 @@ where
     handler: Arc<dyn SlashCommandHandlerWithoutArgs<State>>,
 
     arguments: Vec<ArgumentMeta>,
+
+    on_errors: Vec<Arc<dyn ErrorHandlerWithoutType<State>>>,
 }
 
 impl<State> SlashCommandBuilder<State>
@@ -290,6 +295,7 @@ where
             description_i18n: HashMap::new(),
             handler: Arc::new(SlashCommandHandlerWrapper::new(handler)),
             arguments: vec![],
+            on_errors: vec![],
         }
     }
 
@@ -337,6 +343,25 @@ where
         self
     }
 
+    /// Adds an error handler scoped to this slash command.
+    ///
+    /// Arguments:
+    /// * `handler` - The error handler function.
+    ///
+    /// Returns:
+    /// [`SlashCommandBuilder`] - The current builder with the error handler added.
+    pub async fn on_error<Error>(
+        mut self,
+        handler: impl ErrorHandler<State, Error> + 'static,
+    ) -> Self
+    where
+        Error: Send + Sync + 'static,
+    {
+        self.on_errors
+            .push(Arc::new(ErrorHandlerWrapper::new(handler)));
+        self
+    }
+
     pub(crate) fn build(self) -> SlashCommand<State> {
         SlashCommand {
             name: self.name,
@@ -345,6 +370,7 @@ where
             description_i18n: self.description_i18n,
             handler: self.handler,
             arguments: self.arguments,
+            on_errors: self.on_errors,
         }
     }
 }
@@ -679,6 +705,9 @@ where
 
     /// The command group's subcommands and subgroups.
     pub children: Vec<CommandNode<State>>,
+
+    /// Error handlers scoped to this group.
+    pub on_errors: Vec<Arc<dyn ErrorHandlerWithoutType<State>>>,
 }
 
 impl<State> SlashCommandGroup<State>
@@ -698,6 +727,7 @@ where
 {
     name: String,
     children: Vec<CommandNode<State>>,
+    on_errors: Vec<Arc<dyn ErrorHandlerWithoutType<State>>>,
 }
 
 impl<State> SlashCommandGroupBuilder<State>
@@ -708,6 +738,7 @@ where
         SlashCommandGroupBuilder {
             name: name.into(),
             children: vec![],
+            on_errors: vec![],
         }
     }
 
@@ -737,10 +768,30 @@ where
         self
     }
 
+    /// Adds an error handler scoped to this slash command group.
+    ///
+    /// Arguments:
+    /// * `handler` - The error handler function.
+    ///
+    /// Returns:
+    /// [`SlashCommandGroupBuilder`] - The current builder with the error handler added.
+    pub async fn on_error<Error>(
+        mut self,
+        handler: impl ErrorHandler<State, Error> + 'static,
+    ) -> Self
+    where
+        Error: Send + Sync + 'static,
+    {
+        self.on_errors
+            .push(Arc::new(ErrorHandlerWrapper::new(handler)));
+        self
+    }
+
     pub(crate) fn build(self) -> SlashCommandGroup<State> {
         SlashCommandGroup {
             name: self.name,
             children: self.children,
+            on_errors: self.on_errors,
         }
     }
 }

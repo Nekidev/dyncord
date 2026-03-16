@@ -13,6 +13,9 @@
 //! When [`CommandError`]s happen, they're passed to any error handlers as
 //! [`DyncordError::Command`](crate::errors::DyncordError). Match against it and read each error
 //! type's documentation to know what happened and where to look at.
+//! 
+//! Error handling is documented at [the top-level `errors` module](crate::errors). That includes
+//! the errors defined in this module.
 
 use std::error::Error;
 use std::sync::Arc;

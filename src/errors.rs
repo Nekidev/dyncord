@@ -357,32 +357,6 @@
 //! the type from your error to store it into a generic [`DyncordError`]. Downcasting here attempts
 //! to get the type-erased error and see if it matches the error type you gave it. If it does, then
 //! it returns the value to you in the `Some()`.
-//! 
-//! ## Downcasting with Custom Argument Types
-//! 
-//! You can also downcast to handle a specific error type by making the error argument be a
-//! reference to your custom type instead of [`DyncordError`]. For example,
-//! 
-//! ```
-//! async fn on_fail_error(ctx: ErrorContext, error: &FailError) {}
-//! ```
-//! 
-//! This is exactly the same as doing
-//! 
-//! ```
-//! async fn on_fail_error(ctx: ErrorContext, error: DyncordError) -> Result<(), ErrorHandlerError> {
-//!     if let Some(error) = error.downcast::<FailError>() {
-//!         // Your code
-//!     } else {
-//!         Err(ErrorHandlerError::NotHandled)
-//!     }
-//! }
-//! ```
-//! 
-//! Note that that means that if the error returned by your handler does not match the handler's
-//! error type, your handler will not run at all, and silently. If your handler takes a reference
-//! to your error type and it doesn't run, make sure the error type you're trying to handle is
-//! the one returned by your command (or event, or any) handler function.
 
 use std::any::Any;
 use std::error::Error;
@@ -546,7 +520,7 @@ where
 }
 
 /// A trait implemented by error handler functions.
-pub trait ErrorHandler<State, Dummy, Error>: Send + Sync
+pub trait ErrorHandler<State, Err>: Send + Sync
 where
     State: StateBound,
 {
@@ -567,13 +541,7 @@ where
     ) -> DynFuture<'_, ErrorHandlerResult>;
 }
 
-/// A dummy type to differenciate between [`ErrorHandler`] implementations.
-pub struct DummyA;
-
-/// A dummy type to differenciate between [`ErrorHandler`] implementations.
-pub struct DummyB;
-
-impl<State, Func, Fut, Res> ErrorHandler<State, DummyA, DyncordError> for Func
+impl<State, Func, Fut, Res> ErrorHandler<State, DyncordError> for Func
 where
     State: StateBound,
     Func: Fn(ErrorContext<State>, DyncordError) -> Fut + Send + Sync + 'static,
@@ -586,29 +554,6 @@ where
         error: DyncordError,
     ) -> DynFuture<'_, ErrorHandlerResult> {
         Box::pin(async move { self(ctx, error).await.into_error_handler_result() })
-    }
-}
-
-impl<State, Func, Fut, Res, Err> ErrorHandler<State, DummyB, Err> for Func
-where
-    State: StateBound,
-    Func: Fn(ErrorContext<State>, &Err) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Res> + Send + 'static,
-    Res: IntoErrorHandlerResult,
-    Err: Error + Send + 'static,
-{
-    fn handle(
-        &self,
-        ctx: ErrorContext<State>,
-        error: DyncordError,
-    ) -> DynFuture<'_, ErrorHandlerResult> {
-        Box::pin(async move {
-            if let Some(error) = error.downcast::<Err>() {
-                self(ctx, error).await.into_error_handler_result()
-            } else {
-                Err(ErrorHandlerError::NotHandled)
-            }
-        })
     }
 }
 
@@ -636,28 +581,24 @@ where
 }
 
 /// Wraps an error handler function with a phantom error type and a phantom dummy type.
-pub(crate) struct ErrorHandlerWrapper<F, Dummy, Error> {
+pub(crate) struct ErrorHandlerWrapper<F, Error> {
     func: F,
-    _dummy: PhantomData<Dummy>,
     _error: PhantomData<Error>,
 }
 
-impl<F, Dummy, Error> ErrorHandlerWrapper<F, Dummy, Error> {
+impl<F, Error> ErrorHandlerWrapper<F, Error> {
     pub fn new(handler: F) -> Self {
         ErrorHandlerWrapper {
             func: handler,
-            _dummy: PhantomData,
             _error: PhantomData,
         }
     }
 }
 
-impl<State, Func, Error, Dummy> ErrorHandlerWithoutType<State>
-    for ErrorHandlerWrapper<Func, Dummy, Error>
+impl<State, Func, Error> ErrorHandlerWithoutType<State> for ErrorHandlerWrapper<Func, Error>
 where
     State: StateBound,
-    Func: ErrorHandler<State, Dummy, Error>,
-    Dummy: Send + Sync,
+    Func: ErrorHandler<State, Error>,
     Error: Send + Sync,
 {
     fn handle(

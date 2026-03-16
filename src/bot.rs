@@ -188,12 +188,8 @@ where
     ///
     /// Returns:
     /// [`Bot`] - The current bot instance with the top-level error handler added.
-    pub fn on_error<Dummy, Error>(
-        mut self,
-        handler: impl ErrorHandler<State, Dummy, Error> + 'static,
-    ) -> Self
+    pub fn on_error<Error>(mut self, handler: impl ErrorHandler<State, Error> + 'static) -> Self
     where
-        Dummy: Send + Sync + 'static,
         Error: Send + Sync + 'static,
     {
         self.on_errors

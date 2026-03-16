@@ -139,12 +139,8 @@ impl<State> EventHandlerBuilder<State>
 where
     State: StateBound,
 {
-    pub fn on_error<Dummy, Error>(
-        mut self,
-        handler: impl ErrorHandler<State, Dummy, Error> + 'static,
-    ) -> Self
+    pub fn on_error<Error>(mut self, handler: impl ErrorHandler<State, Error> + 'static) -> Self
     where
-        Dummy: Send + Sync + 'static,
         Error: Send + Sync + 'static,
     {
         self.on_errors

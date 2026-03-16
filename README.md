@@ -160,6 +160,19 @@ As a quick start, check the documentation of the modules exported at the top lev
 They're the heaviest documented and will give you a good overview of the features provided by
 dyncord.
 
+Some important topics that are covered are:
+
+- [State](crate::state) - Application state, how to use it, and how it works.
+- [Commands](crate::commands) - How to create commands, the different types of commands, and how to
+  use them.
+  - [Slash Commands](crate::commands::slash) - All about slash commands.
+  - [Prefixed Commands](crate::commands::prefixed) - All about prefixed commands.
+- [Events](crate::events) - How to handle events, the different types of events, and how to use
+  them.
+- [Error Handling](crate::error) - How error handling works in dyncord and how to handle errors.
+- [Built-in Utilities](crate::builtin) - A collection of built-in utilities that you can use in
+  your bot, like a help command. They're also good references to build your own.
+
 # WIP
 
 Dyncord is a work in progress, extremely early in development, and certainly not ready for

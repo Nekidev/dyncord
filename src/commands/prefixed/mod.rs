@@ -211,7 +211,7 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::commands::errors::{ArgumentError, CommandError};
+use crate::commands::errors::CommandError;
 use crate::commands::prefixed::arguments::IntoArgument;
 use crate::commands::prefixed::context::PrefixedContext;
 use crate::commands::{CommandGroupIntoCommandNode, CommandNode, CommandResult};
@@ -330,8 +330,6 @@ where
 
     /// Runs the command handler.
     ///
-    /// This function does not panic because all futures internally are run via [`tokio::spawn`].
-    ///
     /// Arguments:
     /// * `ctx` - The context of the command, which contains information about the message,
     ///   channel, guild, etc.
@@ -434,10 +432,9 @@ where
     ///
     /// Returns:
     /// [`PrefixedCommandBuilder`] - The command builder with the error handler set.
-    pub fn on_error<F, Dummy, Error>(mut self, handler: F) -> Self
+    pub fn on_error<F, Error>(mut self, handler: F) -> Self
     where
-        F: ErrorHandler<State, Dummy, Error> + 'static,
-        Dummy: Send + Sync + 'static,
+        F: ErrorHandler<State, Error> + 'static,
         Error: Send + Sync + 'static,
     {
         self.on_errors
@@ -488,55 +485,12 @@ where
     }
 }
 
-/// Parses an argument, handling panics if they happen.
-///
-/// Arguments:
-/// * `ctx` - The prefixed command's context.
-/// * `args` - The raw arguments to parse from.
-///
-/// Returns:
-/// * `Ok((T, String))` - The parsed argument and the remaining raw arguments.
-/// * `Err(ArgumentError)` - If the argument fails to parse.
-async fn parse_arg<T, State>(
-    ctx: PrefixedContext<State>,
-    args: String,
-) -> Result<(T, String), ArgumentError>
-where
-    T: IntoArgument<State> + 'static,
-    State: StateBound,
-{
-    tokio::spawn(T::into_argument(ctx, args))
-        .await
-        .map_err(|e| ArgumentError::Runtime(Arc::new(e)))?
-}
-
-/// Handles a command's execution, catching and wrapping panics if any.
-///
-/// Arguments:
-/// * `fut` - The future to await and wrap on error.
-///
-/// Returns:
-/// [`CommandResult`] - The resulting command result.
-async fn handle_run<Fut, Res>(fut: Fut) -> CommandResult
-where
-    Fut: Future<Output = Res> + Send + 'static,
-    Res: IntoCommandResult + Send + 'static,
-{
-    tokio::spawn(fut)
-        .await
-        .map_err(|e| CommandError::Runtime(Arc::new(e)))?
-        .into_command_result()
-}
-
 /// Trait for command handlers, the functions that execute when a command is run.
 pub trait PrefixedCommandHandler<State, Args>: Send + Sync
 where
     State: StateBound,
 {
     /// Runs the command handler.
-    ///
-    /// This function must never panic. Use [`parse_arg`] and [`handle_run`] to handle them
-    /// properly.
     ///
     /// Arguments:
     /// * `ctx` - The context of the command, which contains information about the message,
@@ -558,7 +512,7 @@ where
     State: StateBound,
 {
     fn run(&self, ctx: PrefixedContext<State>, _args: &str) -> DynFuture<'_, CommandResult> {
-        Box::pin(handle_run((self)(ctx)))
+        Box::pin(async move { self(ctx).await.into_command_result() })
     }
 }
 
@@ -574,9 +528,9 @@ where
         let args = args.to_string();
 
         Box::pin(async move {
-            let (a, _remaining) = parse_arg(ctx.clone(), args).await?;
+            let (a, _remaining) = A::into_argument(ctx.clone(), args).await?;
 
-            handle_run((self)(ctx, a)).await
+            self(ctx, a).await.into_command_result()
         })
     }
 }
@@ -594,10 +548,10 @@ where
         let args = args.to_string();
 
         Box::pin(async move {
-            let (a, remaining) = parse_arg(ctx.clone(), args).await?;
-            let (b, _remaining) = parse_arg(ctx.clone(), remaining).await?;
+            let (a, remaining) = A::into_argument(ctx.clone(), args).await?;
+            let (b, _remaining) = B::into_argument(ctx.clone(), remaining).await?;
 
-            handle_run((self)(ctx, a, b)).await
+            self(ctx, a, b).await.into_command_result()
         })
     }
 }
@@ -616,11 +570,11 @@ where
         let args = args.to_string();
 
         Box::pin(async move {
-            let (a, remaining) = parse_arg(ctx.clone(), args).await?;
-            let (b, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (c, _remaining) = parse_arg(ctx.clone(), remaining).await?;
+            let (a, remaining) = A::into_argument(ctx.clone(), args).await?;
+            let (b, remaining) = B::into_argument(ctx.clone(), remaining).await?;
+            let (c, _remaining) = C::into_argument(ctx.clone(), remaining).await?;
 
-            handle_run((self)(ctx, a, b, c)).await
+            self(ctx, a, b, c).await.into_command_result()
         })
     }
 }
@@ -640,12 +594,12 @@ where
         let args = args.to_string();
 
         Box::pin(async move {
-            let (a, remaining) = parse_arg(ctx.clone(), args).await?;
-            let (b, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (c, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (d, _remaining) = parse_arg(ctx.clone(), remaining).await?;
+            let (a, remaining) = A::into_argument(ctx.clone(), args).await?;
+            let (b, remaining) = B::into_argument(ctx.clone(), remaining).await?;
+            let (c, remaining) = C::into_argument(ctx.clone(), remaining).await?;
+            let (d, _remaining) = D::into_argument(ctx.clone(), remaining).await?;
 
-            handle_run((self)(ctx, a, b, c, d)).await
+            self(ctx, a, b, c, d).await.into_command_result()
         })
     }
 }
@@ -666,13 +620,13 @@ where
         let args = args.to_string();
 
         Box::pin(async move {
-            let (a, remaining) = parse_arg(ctx.clone(), args).await?;
-            let (b, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (c, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (d, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (e, _remaining) = parse_arg(ctx.clone(), remaining).await?;
+            let (a, remaining) = A::into_argument(ctx.clone(), args).await?;
+            let (b, remaining) = B::into_argument(ctx.clone(), remaining).await?;
+            let (c, remaining) = C::into_argument(ctx.clone(), remaining).await?;
+            let (d, remaining) = D::into_argument(ctx.clone(), remaining).await?;
+            let (e, _remaining) = E::into_argument(ctx.clone(), remaining).await?;
 
-            handle_run((self)(ctx, a, b, c, d, e)).await
+            self(ctx, a, b, c, d, e).await.into_command_result()
         })
     }
 }
@@ -695,14 +649,14 @@ where
         let args = args.to_string();
 
         Box::pin(async move {
-            let (a, remaining) = parse_arg(ctx.clone(), args).await?;
-            let (b, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (c, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (d, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (e, remaining) = parse_arg(ctx.clone(), remaining).await?;
-            let (f, _remaining) = parse_arg(ctx.clone(), remaining).await?;
+            let (a, remaining) = A::into_argument(ctx.clone(), args).await?;
+            let (b, remaining) = B::into_argument(ctx.clone(), remaining).await?;
+            let (c, remaining) = C::into_argument(ctx.clone(), remaining).await?;
+            let (d, remaining) = D::into_argument(ctx.clone(), remaining).await?;
+            let (e, remaining) = E::into_argument(ctx.clone(), remaining).await?;
+            let (f, _remaining) = F::into_argument(ctx.clone(), remaining).await?;
 
-            handle_run((self)(ctx, a, b, c, d, e, f)).await
+            self(ctx, a, b, c, d, e, f).await.into_command_result()
         })
     }
 }
@@ -734,8 +688,6 @@ where
     State: StateBound,
 {
     /// Runs the internal handler function.
-    ///
-    /// This function never panics, since panics are wrapped before being returned as an error.
     ///
     /// Arguments:
     /// * `ctx` - The context to run the command with.
@@ -889,8 +841,7 @@ where
     /// added to the error handlers list.
     pub fn on_error<F, Dummy, Error>(mut self, handler: F) -> Self
     where
-        F: ErrorHandler<State, Dummy, Error> + 'static,
-        Dummy: Send + Sync + 'static,
+        F: ErrorHandler<State, Error> + 'static,
         Error: Send + Sync + 'static,
     {
         self.on_errors
