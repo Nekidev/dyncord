@@ -1,6 +1,6 @@
 [package]
 name = "dyncord"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2024"
 authors = ["Nyeki <hello@nyeki.dev>"]
 license = "MIT"
@@ -9,7 +9,6 @@ repository = "https://github.com/Nekidev/dyncord"
 description = "A high-level, ergonomic, batteries-included Discord bot library for Rust. WIP."
 
 [dependencies]
-futures = "0.3.32"
 rustls = "0.23.37"
 thiserror = "2.0.18"
 tokio = "1.50.0"
