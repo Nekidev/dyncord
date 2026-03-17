@@ -166,11 +166,7 @@ where
                 match (&event.user, &event.member) {
                     (Some(user), None) => Some(user.clone().into()),
                     (None, Some(member)) => {
-                        if let Some(user) = &member.user {
-                            Some(user.clone().into())
-                        } else {
-                            None
-                        }
+                        member.user.as_ref().map(|user| user.clone().into())
                     }
                     _ => {
                         // Discord sent neither a user nor a member.
