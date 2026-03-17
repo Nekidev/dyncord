@@ -9,6 +9,7 @@ repository = "https://github.com/Nekidev/dyncord"
 description = "A high-level, ergonomic, batteries-included Discord bot library for Rust. WIP."
 
 [dependencies]
+num = "0.4.3"
 rustls = "0.23.37"
 thiserror = "2.0.18"
 tokio = "1.50.0"

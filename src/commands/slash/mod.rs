@@ -106,7 +106,8 @@
 //! at the moment:
 //!
 //! - `String` - `Argument::string()`
-//! - `Option<String>` - `Argument::string().optional()`
+//! - `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64` - `Argument::integer()`
+//! - `f32`, `f64` - `Argument::float()`
 //!
 //! Argument types are those types that implement [`IntoArgument`] (not to be confused with
 //! prefixed commands' [`IntoArgument`](crate::commands::prefixed::arguments::IntoArgument)).
@@ -147,9 +148,15 @@
 //!         }
 //!     }
 //!
-//!     // The discord-native type your custom type will be registered as.
-//!     fn r#type() -> ArgumentType {
-//!         ArgumentType::String
+//!     // The discord-native type your custom type will be registered as, and `false`.
+//!     //
+//!     // The second item of the tuple defines whether this argument type is optional. Given it's
+//!     // not Option<T>, this is required, therefore is_optional = false.
+//!     //
+//!     // Option<Name> will be automatically implemented and set this to true when the argument is
+//!     // optional.
+//!     fn r#type() -> (ArgumentType, bool) {
+//!         (ArgumentType::String, false)
 //!     }
 //! }
 //! ```
@@ -350,10 +357,7 @@ where
     ///
     /// Returns:
     /// [`SlashCommandBuilder`] - The current builder with the error handler added.
-    pub async fn on_error<Error>(
-        mut self,
-        handler: impl ErrorHandler<State, Error> + 'static,
-    ) -> Self
+    pub fn on_error<Error>(mut self, handler: impl ErrorHandler<State, Error> + 'static) -> Self
     where
         Error: Send + Sync + 'static,
     {
@@ -396,9 +400,10 @@ where
     /// This is used to alert the developer when they haven't defined the argument metadata for it.
     ///
     /// Returns:
-    /// [`Vec<ArgumentType>`] - A vector of command argument types, one per argument the function
-    /// takes.
-    fn argument_types(&self) -> Vec<ArgumentType>;
+    /// [`Vec<(ArgumentType, bool)>`] - A vector of command argument types, one per argument the
+    /// function takes. The first value of each tuple is the type and the second one is whether the
+    /// argument is optional.
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)>;
 }
 
 impl<State, Func, Fut, Res> SlashCommandHandler<State, ()> for Func
@@ -415,7 +420,7 @@ where
         })
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         vec![]
     }
 }
@@ -468,7 +473,7 @@ where
         })
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         vec![A::r#type()]
     }
 }
@@ -494,7 +499,7 @@ where
         })
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         vec![A::r#type(), B::r#type()]
     }
 }
@@ -522,7 +527,7 @@ where
         })
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         vec![A::r#type(), B::r#type(), C::r#type()]
     }
 }
@@ -552,7 +557,7 @@ where
         })
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         vec![A::r#type(), B::r#type(), C::r#type(), D::r#type()]
     }
 }
@@ -584,7 +589,7 @@ where
         })
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         vec![
             A::r#type(),
             B::r#type(),
@@ -625,7 +630,7 @@ where
         })
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         vec![
             A::r#type(),
             B::r#type(),
@@ -675,8 +680,10 @@ where
     /// A vector of argument types taken by this handler.
     ///
     /// Return:
-    /// [`Vec<ArgumentType>`] - The argument types taken by this handler.
-    fn argument_types(&self) -> Vec<ArgumentType>;
+    /// [`Vec<ArgumentType>`] - The argument types taken by this handler. For each item, the first
+    /// item of the tuple is the argument type and the second one is whether the argument is
+    /// optional.
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)>;
 }
 
 impl<State, F, Args> SlashCommandHandlerWithoutArgs<State> for SlashCommandHandlerWrapper<F, Args>
@@ -689,7 +696,7 @@ where
         SlashCommandHandler::run(&self.handler, ctx)
     }
 
-    fn argument_types(&self) -> Vec<ArgumentType> {
+    fn argument_types(&self) -> Vec<(ArgumentType, bool)> {
         SlashCommandHandler::argument_types(&self.handler)
     }
 }
@@ -775,10 +782,7 @@ where
     ///
     /// Returns:
     /// [`SlashCommandGroupBuilder`] - The current builder with the error handler added.
-    pub async fn on_error<Error>(
-        mut self,
-        handler: impl ErrorHandler<State, Error> + 'static,
-    ) -> Self
+    pub fn on_error<Error>(mut self, handler: impl ErrorHandler<State, Error> + 'static) -> Self
     where
         Error: Send + Sync + 'static,
     {
@@ -827,10 +831,13 @@ pub enum InvalidCommandError {
     )]
     TooManyArguments(String),
 
+    /// The arguments defined in the handler function and the arguments defined in the command metadata did not match.
+    /// 
+    /// The first item is the command's name. The second and third are tuple of the argument type and whether the argument is optional.
     #[error(
         "The command /{0} has invalid arguments passed as metadata. The handler function defines an argument of type {1:?}, but the metadata you set defines an argument of type {2:?}. This will always fail to parse. Correct the command's metadata, or change your handler's signature."
     )]
-    MismatchingArgumentTypes(String, ArgumentType, ArgumentType),
+    MismatchingArgumentTypes(String, (ArgumentType, bool), (ArgumentType, bool)),
 
     #[error("You have a slash command with an empty name!")]
     CommandNameTooShort,

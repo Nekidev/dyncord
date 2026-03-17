@@ -357,6 +357,51 @@
 //! the type from your error to store it into a generic [`DyncordError`]. Downcasting here attempts
 //! to get the type-erased error and see if it matches the error type you gave it. If it does, then
 //! it returns the value to you in the `Some()`.
+//!
+//! # Original Error Contexts
+//!
+//! Many times, you want to let the user know an error happened. However, [`ErrorContext`] is
+//! neither [`PrefixedContext`] nor [`SlashContext`], so you can't directly tell the user an error
+//! occurred.
+//!
+//! [`ErrorContext`] has an [`original`](ErrorContext::original) field that holds the original
+//! context type. You could match against it to tell the user an error occurred.
+//!
+//! ```
+//! async fn on_error_notify_user(ctx: ErrorContext, _error: DyncordError) -> Result<(), ErrorHandlerError> {
+//!     match ctx.original {
+//!         ErrorOriginalContext::PrefixedContext(ctx) => {
+//!             let _ = ctx.send("Oh no! An error occurred.").await.map_err(ErrorHandlerError::new)?;
+//!         },
+//!         ErrorOriginalContext::SlashContext(ctx) => {
+//!             ctx.respond("Oh no! An error occurred.").await.map_err(ErrorHandlerError::new)?;
+//!         },
+//!         _ => {
+//!             return Err(ErrorHandlerError::NotHandled)
+//!         }
+//!     };
+//!
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! However, that's ugly. That's why you can use [`ErrorContext::send`] instead, which is similar
+//! to the example above but cleaner.
+//! 
+//! ```
+//! async fn on_error_notify_user(ctx: ErrorContext, _error: DyncordError) -> Result<(), ErrorHandlerError> {
+//!     ctx.send("Oh no! An error occurred.").await?;
+//!
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! [`ErrorContext::send`] is the same as [`PrefixedContext::send`] when the error was returned by
+//! a prefixed-command handler, and the same as [`SlashContext::respond`] when the error was
+//! returned by a slash-command handler.
+//! 
+//! The only difference with the first example matching on `ctx.original` is that when the message
+//! is not sent, it doesn't return [`ErrorHandlerError::NotHandled`], rather `Ok(false)`.
 
 use std::any::Any;
 use std::error::Error;
@@ -444,6 +489,39 @@ where
     pub original: ErrorOriginalContext<State>,
 }
 
+impl<State> ErrorContext<State>
+where
+    State: StateBound,
+{
+    /// Sends a message to the current channel if the error was raised by a command.
+    /// 
+    /// - For prefixed commands, this is equivalent to [`PrefixedContext::send`].
+    /// - For slash commands, this is equivalent to [`SlashContext::respond`].
+    /// 
+    /// For non-command-returned errors, this is a no-op.
+    /// 
+    /// Arguments:
+    /// * `message` - The message to send.
+    /// 
+    /// Returns:
+    /// * `Ok(true)` - If the message was successfully sent.
+    /// * `Ok(false)` - If the message wasn't sent because the error was non-command-returned.
+    /// * `Err(ErrorHandlerError::Runtime)` - If an error occurs while sending the message.
+    pub async fn send(&self, message: impl Into<String>) -> Result<bool, ErrorHandlerError> {
+        match &self.original {
+            ErrorOriginalContext::PrefixedContext(ctx) => {
+                let _ = ctx.send(message).await.map_err(ErrorHandlerError::new)?;
+            }
+            ErrorOriginalContext::SlashContext(ctx) => {
+                ctx.respond(message).await.map_err(ErrorHandlerError::new)?;
+            }
+            _ => return Ok(false),
+        };
+
+        Ok(true)
+    }
+}
+
 /// Wraps the original context type in an enum to pass it down to event handlers.
 #[derive(Clone)]
 pub enum ErrorOriginalContext<State>
@@ -482,6 +560,15 @@ pub enum ErrorHandlerError {
     /// An unintentional error occurred while running the error handler.
     #[error("While handling the error, another error occurred.")]
     Error(Arc<dyn Error + Send + Sync>),
+}
+
+impl ErrorHandlerError {
+    pub fn new<T>(error: T) -> Self
+    where
+        T: Error + Send + Sync + 'static,
+    {
+        Self::Error(Arc::new(error))
+    }
 }
 
 /// Normalizes an error handler's return value into an [`ErrorHandlerResult`].

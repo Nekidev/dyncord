@@ -50,7 +50,7 @@ impl IntoArgument<()> for Name {
         }
     }
 
-    fn r#type() -> ArgumentType {
-        ArgumentType::String
+    fn r#type() -> (ArgumentType, bool) {
+        (ArgumentType::String, false)
     }
 }
