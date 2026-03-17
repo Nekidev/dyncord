@@ -1,9 +1,16 @@
 use std::fmt::Display;
 
+use twilight_mention::ParseMention;
+use twilight_model::id::Id;
+use twilight_model::id::marker::{ChannelMarker, RoleMarker, UserMarker};
+
 use crate::commands::errors::ArgumentError;
 use crate::commands::prefixed::context::PrefixedContext;
 use crate::state::StateBound;
 use crate::utils::DynFuture;
+use crate::wrappers::types::channels::Channel;
+use crate::wrappers::types::roles::Role;
+use crate::wrappers::types::users::User;
 
 /// Implements conversion from a raw message into a command's argument.
 pub trait IntoArgument<State = ()>: Sized + Send + Sync
@@ -735,6 +742,125 @@ where
                 "false" | "n" | "no" | "0" | "off" => Ok((false, remaining)),
                 _ => Err(ArgumentError::Misformatted),
             }
+        })
+    }
+}
+
+impl<State> IntoArgument<State> for User
+where
+    State: StateBound,
+{
+    fn into_argument(
+        ctx: PrefixedContext<State>,
+        args: String,
+    ) -> DynFuture<'static, Result<(Self, String), ArgumentError>> {
+        Box::pin(async move {
+            let (arg, remaining) = String::into_argument(ctx.clone(), args).await?;
+
+            let user_id = Id::<UserMarker>::parse(&arg).map_err(|_| ArgumentError::Misformatted)?;
+
+            // Users may write a properly-formatted mention that points to no user (or to no
+            // accessible user). We check for mentions received so that if Discord didn't send
+            // any we can fail fast.
+            ctx.event
+                .mentions
+                .iter()
+                .find(|mention| mention.id == user_id)
+                .ok_or(ArgumentError::MissingResolved)?;
+
+            let user = ctx
+                .handle
+                .client
+                .user(user_id)
+                .await
+                .map_err(ArgumentError::new)?
+                .model()
+                .await
+                .map_err(ArgumentError::new)?;
+
+            Ok((user.into(), remaining))
+        })
+    }
+}
+
+impl<State> IntoArgument<State> for Channel
+where
+    State: StateBound,
+{
+    fn into_argument(
+        ctx: PrefixedContext<State>,
+        args: String,
+    ) -> DynFuture<'static, Result<(Self, String), ArgumentError>> {
+        Box::pin(async move {
+            let (arg, remaining) = String::into_argument(ctx.clone(), args).await?;
+
+            let channel_id =
+                Id::<ChannelMarker>::parse(&arg).map_err(|_| ArgumentError::Misformatted)?;
+
+            // Users may write a properly-formatted mention that points to no channel (or to no
+            // accessible channel). We check for mentions received so that if Discord didn't send
+            // any we can fail fast.
+            ctx.event
+                .mention_channels
+                .iter()
+                .find(|mention| mention.id == channel_id)
+                .ok_or(ArgumentError::MissingResolved)?;
+
+            let channel = ctx
+                .handle
+                .client
+                .channel(channel_id)
+                .await
+                .map_err(ArgumentError::new)?
+                .model()
+                .await
+                .map_err(ArgumentError::new)?;
+
+            Ok((channel.into(), remaining))
+        })
+    }
+}
+
+impl<State> IntoArgument<State> for Role
+where
+    State: StateBound,
+{
+    fn into_argument(
+        ctx: PrefixedContext<State>,
+        args: String,
+    ) -> DynFuture<'static, Result<(Self, String), ArgumentError>> {
+        Box::pin(async move {
+            if let Some(guild_id) = ctx.event.guild_id {
+
+                let (arg, remaining) = String::into_argument(ctx.clone(), args).await?;
+    
+                let role_id =
+                    Id::<RoleMarker>::parse(&arg).map_err(|_| ArgumentError::Misformatted)?;
+    
+                // Users may write a properly-formatted mention that points to no role (or to no
+                // accessible role). We check for mentions received so that if Discord didn't send
+                // any we can fail fast.
+                ctx.event
+                    .mention_roles
+                    .iter()
+                    .find(|mention| **mention == role_id)
+                    .ok_or(ArgumentError::MissingResolved)?;
+    
+                let role = ctx
+                    .handle
+                    .client
+                    .role(guild_id, role_id)
+                    .await
+                    .map_err(ArgumentError::new)?
+                    .model()
+                    .await
+                    .map_err(ArgumentError::new)?;
+    
+                Ok((role.into(), remaining))
+            } else {
+                Err(ArgumentError::WrongContext)
+            }
+
         })
     }
 }

@@ -100,20 +100,10 @@
 //!
 //! Now yes. Try running your bot and see the changes. You're doing great.
 //!
-//! ## Primitive Argument Types
-//!
-//! Given this is work-in-progress support for slash commands, we only support a few argument types
-//! at the moment:
-//!
-//! - `String` - `Argument::string()`
-//! - `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64` - `Argument::integer()`
-//! - `f32`, `f64` - `Argument::float()`
-//! - `bool` - `Argument::boolean()`
+//! ## Custom Argument Types
 //!
 //! Argument types are those types that implement [`IntoArgument`] (not to be confused with
 //! prefixed commands' [`IntoArgument`](crate::commands::prefixed::arguments::IntoArgument)).
-//!
-//! ## Custom Argument Types
 //!
 //! You can also create [`IntoArgument`] implementations for your own custom types. For example,
 //! you could make a `Name(String, String)` type holding someone's first and last names. Such

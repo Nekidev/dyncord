@@ -107,6 +107,9 @@
 //! - `f32`, `f64` - Floating point arguments.
 //! - `bool` - A boolean argument. "true" | "y" | "yes" | "1" | "on" are considered `true`, while
 //!   "false" | "n" | "no" | "0" | "off" are considered `false`.
+//! - `User` - A user mention.
+//! - `Role` - A role mention. Only works within servers.
+//! - `Channel` - A channel mention.
 //! - `Option<T>` - An optional argument. If the argument fails to parse, it'll be considered
 //!   `None` instead of stopping the command's execution.
 //!

@@ -15,6 +15,7 @@ thiserror = "2.0.18"
 tokio = "1.50.0"
 twilight-gateway = { version = "0.17.1", features = ["rustls-webpki-roots", "simd-json", "zlib"] }
 twilight-http = { version = "0.17.1", features = ["rustls-webpki-roots", "simd-json"] }
+twilight-mention = "0.17.0"
 twilight-model = "0.17.1"
 
 [dev-dependencies]
