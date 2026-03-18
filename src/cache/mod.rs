@@ -29,7 +29,7 @@
 //! Then, add it to your bot like follows:
 //!
 //! ```
-//! let bot = Bot::new(()).with_cache(InMemoryCache);
+//! let bot = Bot::new(()).with_cache(InMemoryCache::default());
 //! ```
 //!
 //! That's it! Dyncord will now automatically the cache backend everywhere it can be used.
