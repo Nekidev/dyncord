@@ -171,8 +171,10 @@ Some important topics that are covered are:
 - [Events](crate::events) - How to handle events, the different types of events, and how to use
   them.
 - [Error Handling](crate::error) - How error handling works in dyncord and how to handle errors.
+- [Caching](crate::cache) - How to enable cache, built-in and how to make custom cache backends.
 - [Built-in Utilities](crate::builtin) - A collection of built-in utilities that you can use in
-  your bot, like a help command. They're also good references to build your own.
+  your bot, like a help command, permission checkers, cache backends, and more. They're also good
+  references to build your own.
 
 # WIP
 

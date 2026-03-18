@@ -431,6 +431,9 @@ pub enum DyncordError {
 
     #[error("An error occurred while running an error handler: {0}")]
     Error(Arc<dyn Error + Send + Sync>),
+
+    #[error("An error occurred while the cache backend was processing an event: {0}")]
+    Cache(Arc<dyn Error + Send + Sync>),
 }
 
 impl DyncordError {
@@ -467,6 +470,7 @@ impl DyncordError {
             },
             DyncordError::Event(error) => error.downcast_ref(),
             DyncordError::Error(error) => error.downcast_ref(),
+            DyncordError::Cache(error) => error.downcast_ref(),
         }
     }
 }
@@ -543,6 +547,9 @@ where
     /// These contexts have their event normalized to [`Event`] not to pass the generic up and not
     /// to fix error handlers to a single event type.
     EventContext(Box<EventContext<State, Event>>),
+
+    /// The error occurred while an event was being processed by the cache backend.
+    CacheContext,
 }
 
 /// The result type all error handlers' results are normalized to.

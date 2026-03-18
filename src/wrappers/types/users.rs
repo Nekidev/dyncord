@@ -1,9 +1,16 @@
 //! User types.
 
+#[cfg(feature = "cache-bitcode")]
+use bitcode::{Decode, Encode};
+#[cfg(feature = "cache-serde")]
+use serde::{Deserialize, Serialize};
 use twilight_model::channel::message::Mention as TwilightMention;
-use twilight_model::user::User as TwilightUser;
+use twilight_model::user::{CurrentUser as TwilightCurrentUser, User as TwilightUser};
 
 /// A Discord user.
+#[cfg_attr(feature = "cache-bitcode", derive(Encode, Decode))]
+#[cfg_attr(feature = "cache-serde", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub struct User {
     /// The user's ID.
     pub id: u64,
@@ -56,6 +63,20 @@ impl From<TwilightUser> for User {
             is_app: value.bot,
             is_verified: value.verified.unwrap_or(false),
             is_system: value.system.unwrap_or(false),
+        }
+    }
+}
+
+impl From<TwilightCurrentUser> for User {
+    fn from(value: TwilightCurrentUser) -> Self {
+        Self {
+            id: value.id.get(),
+            name: value.name,
+            name_global: value.global_name,
+            discriminator: value.discriminator,
+            is_app: value.bot,
+            is_verified: value.verified.unwrap_or(false),
+            is_system: false,
         }
     }
 }

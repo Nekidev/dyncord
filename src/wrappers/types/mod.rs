@@ -4,9 +4,15 @@
 //! sending messages, embeds, and other Discord objects. We do not currently have wrappers for all
 //! Discord objects, but we plan to add more in the future.
 //!
-//! All of these builders can be used interchangeably with the core twilight types. Dyncord
+//! Many times, these builders can be used interchangeably with the core twilight types. Dyncord
 //! functions take `impl Into<TwilightType>` for the relevant types, so it's up to you.
 //!
+//! You'll see many types here that don't have an obvious reason for being wrapped at first.
+//! Usually, types wrapped here are either commonly-used types that get better ergonomics by being
+//! wrapped, or types that can be cached and the wrappers implement the necessary traits for it.
+//! 
+//! Cacheable types are derived by
+//! 
 //! If there's any specific object you'd like to see a builder for, please open an issue or submit
 //! a pull request!
 

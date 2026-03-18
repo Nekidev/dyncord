@@ -9,15 +9,30 @@ repository = "https://github.com/Nekidev/dyncord"
 description = "A high-level, ergonomic, batteries-included Discord bot library for Rust. WIP."
 
 [dependencies]
+bitcode = { version = "0.6.9", optional = true }
 num = "0.4.3"
+papaya = { version = "0.2.3", optional = true }
 rustls = "0.23.37"
+serde = { version = "1.0.228", optional = true }
 thiserror = "2.0.18"
 tokio = "1.50.0"
-twilight-gateway = { version = "0.17.1", features = ["rustls-webpki-roots", "simd-json", "zlib"] }
-twilight-http = { version = "0.17.1", features = ["rustls-webpki-roots", "simd-json"] }
+twilight-gateway = { version = "0.17.1", features = [
+    "rustls-webpki-roots",
+    "simd-json",
+    "zlib",
+] }
+twilight-http = { version = "0.17.1", features = [
+    "rustls-webpki-roots",
+    "simd-json",
+] }
 twilight-mention = "0.17.0"
 twilight-model = "0.17.1"
 
 [dev-dependencies]
 chrono = "0.4.44"
 tokio = { version = "1.50.0", features = ["full"] }
+
+[features]
+cache-bitcode = ["dep:bitcode"]
+cache-serde = ["dep:serde"]
+builtin-cache-inmemory = ["dep:papaya"]

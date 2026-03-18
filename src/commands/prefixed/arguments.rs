@@ -770,15 +770,11 @@ where
 
             let user = ctx
                 .handle
-                .client
-                .user(user_id)
-                .await
-                .map_err(ArgumentError::new)?
-                .model()
+                .get_or_fetch_user(user_id.get())
                 .await
                 .map_err(ArgumentError::new)?;
 
-            Ok((user.into(), remaining))
+            Ok((user, remaining))
         })
     }
 }

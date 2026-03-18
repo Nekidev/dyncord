@@ -281,7 +281,7 @@ where
 {
     fn handle(&self, ctx: EventContext<State, Event>) -> Option<DynFuture<'_, EventResult>>;
 
-    fn check_type(&self, event: &Event) -> bool;
+    fn is_handler_for_type(&self, event: &Event) -> bool;
 }
 
 macro_rules! impl_event_handler_handler_without_args {
@@ -309,7 +309,7 @@ macro_rules! impl_event_handler_handler_without_args {
                 None
             }
 
-            fn check_type(&self, event: &Event) -> bool {
+            fn is_handler_for_type(&self, event: &Event) -> bool {
                 matches!(event, Event::$event(_))
             }
         }
@@ -339,7 +339,7 @@ macro_rules! impl_event_handler_handler_without_args {
                 None
             }
 
-            fn check_type(&self, event: &Event) -> bool {
+            fn is_handler_for_type(&self, event: &Event) -> bool {
                 matches!(event, Event::$event(_))
             }
         }
@@ -369,7 +369,7 @@ macro_rules! impl_event_handler_handler_without_args {
                 None
             }
 
-            fn check_type(&self, event: &Event) -> bool {
+            fn is_handler_for_type(&self, event: &Event) -> bool {
                 matches!(event, Event::$event(_))
             }
         }
@@ -399,7 +399,7 @@ macro_rules! impl_event_handler_handler_without_args {
                 None
             }
 
-            fn check_type(&self, event: &Event) -> bool {
+            fn is_handler_for_type(&self, event: &Event) -> bool {
                 matches!(event, Event::$event)
             }
         }
@@ -429,7 +429,7 @@ macro_rules! impl_event_handler_handler_without_args {
                 None
             }
 
-            fn check_type(&self, event: &Event) -> bool {
+            fn is_handler_for_type(&self, event: &Event) -> bool {
                 matches!(event, Event::$event(_))
             }
         }
@@ -445,7 +445,7 @@ where
         Some(self.func.handle(ctx))
     }
 
-    fn check_type(&self, _: &Event) -> bool {
+    fn is_handler_for_type(&self, _: &Event) -> bool {
         true
     }
 }

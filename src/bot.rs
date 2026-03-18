@@ -6,6 +6,7 @@ use twilight_gateway::{ConfigBuilder, EventTypeFlags, Intents, Shard, ShardId, S
 use twilight_http::Client;
 use twilight_model::gateway::payload::outgoing::identify::IdentifyProperties;
 
+use crate::cache::{self, Cache};
 use crate::commands::prefixed::prefixes::Prefixes;
 use crate::commands::slash::InvalidCommandError;
 use crate::commands::{
@@ -44,6 +45,9 @@ where
 
     /// Top-level error handlers.
     on_errors: Vec<Arc<dyn ErrorHandlerWithoutType<State>>>,
+
+    /// The cache backend in use, if any.
+    cache: Option<Arc<dyn Cache>>,
 }
 
 impl Default for Bot<()> {
@@ -69,6 +73,7 @@ where
             shard: ShardId::ONE,
             prefixes: None,
             on_errors: Vec::new(),
+            cache: None,
         }
     }
 
@@ -197,6 +202,21 @@ where
         self
     }
 
+    /// Sets the cache backend to use.
+    ///
+    /// You can use either the [built-in cache backends](crate::builtin::cache) or implement a
+    /// custom backend using your own storage backend. There's a built-in in-memory backend.
+    ///
+    /// Arguments:
+    /// * `backend` - The cache backend to use.
+    ///
+    /// Returns:
+    /// [`Bot`] - The current bot instance with the cache backend set.
+    pub fn with_cache(mut self, backend: impl Cache + 'static) -> Self {
+        self.cache = Some(Arc::new(backend));
+        self
+    }
+
     /// Returns a handle to the bot, which can be used to interact with the bot's internal state.
     ///
     /// Note: This creates a handle using the current state of the bot. If you update the bot's
@@ -216,6 +236,7 @@ where
             commands: Arc::new(self.commands.clone()),
             prefixes: self.prefixes.clone(),
             on_errors: self.on_errors.clone(),
+            cache: self.cache.clone(),
         }
     }
 
@@ -274,10 +295,33 @@ where
                 state: self.state.clone(),
             };
 
+            if let Some(cache) = &ctx.handle.cache {
+                let result = cache::process_event(ctx.event.clone(), &**cache).await;
+
+                if let Err(error) = result {
+                    let event = ctx.event.clone();
+                    let state = ctx.state.clone();
+                    let handle = ctx.handle.clone();
+
+                    let on_errors = handle.on_errors.clone();
+
+                    tokio::spawn(async move {
+                        let ctx = ErrorContext {
+                            event,
+                            state,
+                            handle,
+                            original: ErrorOriginalContext::CacheContext,
+                        };
+
+                        errors::handle(ctx, DyncordError::Cache(error.into()), &[on_errors]).await;
+                    });
+                }
+            }
+
             for handler in &*self.on_events {
                 let handler = handler.clone();
 
-                if handler.handler.check_type(&ctx.event) {
+                if handler.handler.is_handler_for_type(&ctx.event) {
                     let ctx = ctx.clone();
 
                     tokio::spawn(async move {

@@ -3,6 +3,7 @@
 mod aliases;
 mod bot;
 pub mod builtin;
+pub mod cache;
 pub mod commands;
 pub mod errors;
 pub mod events;
