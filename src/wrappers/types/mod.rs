@@ -11,7 +11,9 @@
 //! Usually, types wrapped here are either commonly-used types that get better ergonomics by being
 //! wrapped, or types that can be cached and the wrappers implement the necessary traits for it.
 //! 
-//! Cacheable types are derived by
+//! Cacheable types are derived by [`serde::Serialize`] and [`serde::Deserialize`] when the feature
+//! flag `cache-serde` is enabled, and by [`bitcode::Encode`] and [`bitcode::Decode`] when the
+//! `cache-bitcode` feature flag is enabled.
 //! 
 //! If there's any specific object you'd like to see a builder for, please open an issue or submit
 //! a pull request!
