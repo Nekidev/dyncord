@@ -44,3 +44,6 @@ cache-serde = ["dep:serde"]
 cache-bitcode = ["dep:bitcode"]
 builtin-cache-redis = ["dep:redis", "cache-bitcode"]
 builtin-cache-inmemory = ["dep:papaya"]
+
+[package.metadata.docs.rs]
+all-features = true
