@@ -36,6 +36,7 @@ twilight-model = "0.17.1"
 
 [dev-dependencies]
 chrono = "0.4.44"
+redis = { version = "1.0.5", features = ["tokio-comp", "aio", "connection-manager"] }
 tokio = { version = "1.50.0", features = ["full"] }
 
 [features]

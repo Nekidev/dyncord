@@ -1,1 +1,4 @@
 /target
+
+# Compose file to test the built-in Redis cache backend
+compose.yml

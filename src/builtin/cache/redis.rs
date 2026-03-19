@@ -22,7 +22,13 @@
 //! [`ConnectionManager`] is recommended due to the automatic reconnection support if it
 //! disconnects, unlike [`MultiplexedConnection`].
 //! 
-//! Initialize a client like follows:
+//! For this, you'll also need to add the `connection-manager` feature flag to the [`redis`] crate:
+//! 
+//! ```sh
+//! cargo add redis -F connection-manager
+//! ```
+//! 
+//! Then initialize a client like follows:
 //!
 //! ```
 //! let client = Client::open("redis://localhost/").unwrap();
@@ -33,7 +39,15 @@
 //! 
 //! ## Connecting to a Cluster
 //! 
-//! To connect to a single node, you'll need a [`ClusterConnection`]. Intialize one like follows:
+//! To connect to a single node, you'll need a [`ClusterConnection`]. For this, you'll also need
+//! the `cluster-async` feature flag enabled in the [`redis`] crate:
+//! 
+//! ```sh
+//! cargo add redis -F cluster-async
+//! ```
+//! 
+//! Then intialize a [`ClusterClient`](redis::cluster::ClusterClient) and a [`ClusterConnection`]
+//! like follows:
 //! 
 //! ```
 //! let client = ClusterClient::new(vec!["redis://node1", "redis://node2"]).unwrap();
