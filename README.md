@@ -1,5 +1,8 @@
 # Dyncord
 
+[Discord Server](https://discord.gg/tkAMaxnRTn) ·
+[GitHub Repository](https://github.com/Nekidev/dyncord) · [Documentation](https://docs.rs/dyncord)
+
 Dyncord is a Rust library for building Discord bots with an axum-like API.
 
 Twilight is a Rust library for interacting with the Discord API. It however does not provide a
