@@ -78,6 +78,23 @@ where
         }
     }
 
+    /// Sets the shard ID to run as.
+    /// 
+    /// If this function is not called, the shard is by default set to ID 0 with 1 shards.
+    /// 
+    /// The current ID must be one of `0..total`.
+    /// 
+    /// Arguments:
+    /// * `current_id` - The current shard's ID.
+    /// * `total` - The total amount of shards.
+    /// 
+    /// Returns:
+    /// [`Bot`] - The current bot with the shard specified.
+    pub async fn shard(mut self, current_id: u32, total: u32) -> Self {
+        self.shard = ShardId::new_checked(current_id, total).expect("The shard ID you set is not valid!");
+        self
+    }
+
     /// Adds a command to the bot's command list.
     ///
     /// Arguments:
