@@ -29,7 +29,7 @@ where
             event: event_ctx.event.clone(),
         };
 
-        let prefixes = match prefixes.get(prefixes_ctx.clone()).await {
+        let prefixes = match prefixes.get_prefixes(prefixes_ctx.clone()).await {
             Ok(prefixes) => prefixes,
             Err(error) => {
                 let error_ctx = ErrorContext {

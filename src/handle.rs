@@ -30,8 +30,9 @@
 use std::error::Error;
 use std::sync::Arc;
 
+use twilight_http::request::channel::reaction::RequestReactionType;
 use twilight_model::id::Id;
-use twilight_model::id::marker::ChannelMarker;
+use twilight_model::id::marker::{ChannelMarker, MessageMarker};
 
 use crate::aliases::DiscordClient;
 use crate::cache::Cache;
@@ -52,7 +53,10 @@ where
     State: StateBound,
 {
     /// The HTTP client to use for sending messages and other interactions with the Discord API.
-    pub(crate) client: DiscordClient,
+    /// 
+    /// Dyncord has not yet wrapped all of this client's functions with nicer APIs. Use when
+    /// dyncord lacks functionality.
+    pub client: DiscordClient,
 
     /// The bot's commands.
     pub commands: Arc<Vec<CommandNode<State>>>,
@@ -74,6 +78,9 @@ pub enum HandleError {
 
     #[error("The cache backend returned an error: {0}")]
     Cache(#[from] Box<dyn Error + Send + Sync>),
+
+    #[error("The emoji passed was not a valid one.")]
+    InvalidEmoji,
 }
 
 impl<State> Handle<State>
@@ -140,5 +147,90 @@ where
         }
 
         self.fetch_user(user_id).await
+    }
+
+    /// Adds a reaction to a message.
+    ///
+    /// For example:
+    /// ```
+    /// ctx.handle.add_reaction(
+    ///     channel_id,
+    ///     message_id,
+    ///     "🍌",
+    /// ).await?;
+    ///
+    /// ctx.handle.add_reaction(
+    ///     channel_id,
+    ///     message_id,
+    ///     "banana",
+    /// ).await?;
+    ///
+    /// ctx.handle.add_reaction(
+    ///     channel_id,
+    ///     message_id,
+    ///     "<a:animated_banana:1234567890>",
+    /// ).await?;
+    /// ```
+    ///
+    /// Arguments:
+    /// * `channel_id` - The ID of the channel the message to react to is in.
+    /// * `message_id` - The ID of the message to react to.
+    /// * `emoji` - The emoji to react with.
+    ///
+    /// Returns:
+    /// * `Ok(())` - When the reaction is added.
+    /// * `Err(HandleError)` - If an error occurred while sending the emoji.
+    pub async fn add_reaction(
+        &self,
+        channel_id: Id<ChannelMarker>,
+        message_id: Id<MessageMarker>,
+        emoji: impl IntoRequestReactionType<'_>,
+    ) -> Result<(), HandleError> {
+        self.client
+            .create_reaction(channel_id, message_id, &emoji.into_request_reaction_type()?)
+            .await
+            .map_err(TwilightError::from)?;
+
+        Ok(())
+    }
+}
+
+/// Trait to convert an emoji to a [`RequestReactionType`], to react to messages.
+///
+/// Its implementation on [`Into<String>`] lets strings like the following be parsed:
+///
+/// - `"🍌"`
+/// - `"banana"` ([GitHub's emoji shorcodes](https://github.com/github/gemoji))
+/// - `"<a:animated_banana:1234567890>"`
+pub trait IntoRequestReactionType<'a> {
+    /// Converts the current value into an emoji to react with.
+    ///
+    /// Returns:
+    /// * `Ok(RequestReactionType)` - The parsed emoji to react with.
+    /// * `Err(HandleError::InvalidEmoji)` - If the emoji was invalid.
+    fn into_request_reaction_type(self) -> Result<RequestReactionType<'a>, HandleError>;
+}
+
+impl<'a, T> IntoRequestReactionType<'a> for T
+where
+    T: Into<String>,
+{
+    fn into_request_reaction_type(self) -> Result<RequestReactionType<'a>, HandleError> {
+        let string = self.into();
+
+        match emojis::get(&string) {
+            Some(emoji) => Ok(RequestReactionType::Unicode {
+                name: emoji.as_str(),
+            }),
+            None => match emojis::get_by_shortcode(&string) {
+                Some(emoji) => Ok(RequestReactionType::Unicode {
+                    name: emoji.as_str(),
+                }),
+                None => Ok(RequestReactionType::Custom {
+                    id: string.parse().map_err(|_| HandleError::InvalidEmoji)?,
+                    name: None,
+                }),
+            },
+        }
     }
 }

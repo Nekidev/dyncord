@@ -67,7 +67,7 @@ where
     /// Returns:
     /// * `Ok(Vec<String>)` - A vector of prefixes for the bot to listen for in the given context.
     /// * `Err(Arc<Err>)` - An error, if the prefixes fail to be gotten.
-    fn get(
+    fn get_prefixes(
         &self,
         context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>>;
@@ -77,7 +77,7 @@ impl<State> Prefixes<State> for &str
 where
     State: StateBound,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         _context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
@@ -89,7 +89,7 @@ impl<State> Prefixes<State> for String
 where
     State: StateBound,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         _context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
@@ -101,7 +101,7 @@ impl<State> Prefixes<State> for Vec<&str>
 where
     State: StateBound,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         _context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
@@ -113,7 +113,7 @@ impl<State> Prefixes<State> for Vec<String>
 where
     State: StateBound,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         _context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
@@ -125,7 +125,7 @@ impl<State> Prefixes<State> for &[String]
 where
     State: StateBound,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         _context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
@@ -137,7 +137,7 @@ impl<State> Prefixes<State> for &[&str]
 where
     State: StateBound,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         _context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
@@ -149,7 +149,7 @@ impl<State, const N: usize> Prefixes<State> for [&str; N]
 where
     State: StateBound,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         _context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
@@ -164,7 +164,7 @@ where
     Fut: Future<Output = Res> + Send + 'static,
     Res: IntoPrefixesResult,
 {
-    fn get(
+    fn get_prefixes(
         &self,
         context: PrefixesContext<State>,
     ) -> Pin<Box<dyn Future<Output = PrefixesResult> + Send + '_>> {
