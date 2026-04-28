@@ -495,7 +495,7 @@ impl From<IntegerArgument> for InnerCommandOption {
             choices: None,
             description: value.description,
             description_localizations: Some(value.description_i18n),
-            kind: InnerCommandOptionType::String,
+            kind: InnerCommandOptionType::Integer,
             min_length: None,
             max_length: None,
             min_value: value.min_value,
