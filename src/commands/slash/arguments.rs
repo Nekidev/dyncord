@@ -1082,8 +1082,8 @@ where
     }
 }
 
-macro_rules! impl_intoargument_for_number {
-    ($type:ident, $argtype:ident) => {
+macro_rules! impl_intoargument_for_float {
+    ($type:ident) => {
         impl<State> IntoArgument<State> for $type
         where
             State: StateBound,
@@ -1104,24 +1104,52 @@ macro_rules! impl_intoargument_for_number {
             }
 
             fn r#type() -> (ArgumentType, bool) {
-                (ArgumentType::$argtype, false)
+                (ArgumentType::Float, false)
             }
         }
     };
 }
 
-impl_intoargument_for_number!(i8, Integer);
-impl_intoargument_for_number!(i16, Integer);
-impl_intoargument_for_number!(i32, Integer);
-impl_intoargument_for_number!(i64, Integer);
-impl_intoargument_for_number!(isize, Integer);
-impl_intoargument_for_number!(u8, Integer);
-impl_intoargument_for_number!(u16, Integer);
-impl_intoargument_for_number!(u32, Integer);
-impl_intoargument_for_number!(u64, Integer);
-impl_intoargument_for_number!(usize, Integer);
-impl_intoargument_for_number!(f32, Float);
-impl_intoargument_for_number!(f64, Float);
+macro_rules! impl_intoargument_for_integer {
+    ($type:ident) => {
+        impl<State> IntoArgument<State> for $type
+        where
+            State: StateBound,
+        {
+            fn into_argument_primitive(
+                _ctx: SlashContext<State>,
+                argument: Option<CommandDataOption>,
+            ) -> DynFuture<'static, Result<Self, ArgumentError>> {
+                if let Some(argument) = argument {
+                    if let CommandOptionValue::Integer(value) = argument.value {
+                        pinbox(Self::from_i64(value).ok_or(ArgumentError::Misformatted))
+                    } else {
+                        pinbox(Err(ArgumentError::Mistyped))
+                    }
+                } else {
+                    pinbox(Err(ArgumentError::Missing))
+                }
+            }
+
+            fn r#type() -> (ArgumentType, bool) {
+                (ArgumentType::Integer, false)
+            }
+        }
+    };
+}
+
+impl_intoargument_for_integer!(i8);
+impl_intoargument_for_integer!(i16);
+impl_intoargument_for_integer!(i32);
+impl_intoargument_for_integer!(i64);
+impl_intoargument_for_integer!(isize);
+impl_intoargument_for_integer!(u8);
+impl_intoargument_for_integer!(u16);
+impl_intoargument_for_integer!(u32);
+impl_intoargument_for_integer!(u64);
+impl_intoargument_for_integer!(usize);
+impl_intoargument_for_float!(f32);
+impl_intoargument_for_float!(f64);
 
 impl<State> IntoArgument<State> for bool
 where
