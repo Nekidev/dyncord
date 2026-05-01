@@ -42,6 +42,7 @@ use crate::errors::ErrorHandlerWithoutType;
 use crate::state::StateBound;
 use crate::wrappers::TwilightError;
 use crate::wrappers::actions::message_create::MessageCreate;
+use crate::wrappers::types::members::Member;
 use crate::wrappers::types::users::User;
 
 /// A handle to interact with the bot's internal state and the Discord API.
@@ -53,7 +54,7 @@ where
     State: StateBound,
 {
     /// The HTTP client to use for sending messages and other interactions with the Discord API.
-    /// 
+    ///
     /// Dyncord has not yet wrapped all of this client's functions with nicer APIs. Use when
     /// dyncord lacks functionality.
     pub client: DiscordClient,
@@ -147,6 +148,67 @@ where
         }
 
         self.fetch_user(user_id).await
+    }
+
+    /// Fetches a server member from the Discord API.
+    ///
+    /// If there's a cache backend, it's updated with this value on success.
+    ///
+    /// Arguments:
+    /// * `server_id` - The ID of the server to fetch the member from.
+    /// * `member_id` - The user ID of the member to fetch.
+    ///
+    /// Returns:
+    /// * `Ok(Member)` - The fetched member.
+    /// * `Err(HandleError)` - If an error occurred while fetching the member or saving it to
+    ///   cache.
+    pub async fn fetch_member(
+        &self,
+        server_id: u64,
+        member_id: u64,
+    ) -> Result<Member, HandleError> {
+        let member: Member = self
+            .client
+            .guild_member(Id::new(server_id), Id::new(member_id))
+            .await
+            .map_err(TwilightError::Twilight)?
+            .model()
+            .await
+            .map_err(TwilightError::TwilightParsing)?
+            .into();
+
+        if let Some(cache) = &self.cache {
+            cache.set_member(server_id, member.clone()).await?;
+        }
+
+        Ok(member)
+    }
+
+    /// Gets a server member from the cache, or from the Discord API if not in cache.
+    ///
+    /// This function saves the member in cache when the Discord API is called.
+    ///
+    /// Arguments:
+    /// * `server_id` - The ID of the server to get the member from.
+    /// * `member_id` - The user ID of the member to get.
+    ///
+    /// Returns:
+    /// * `Ok(Member)` - The server member.
+    /// * `Err(HandleError)` - If an error occurred.
+    pub async fn get_or_fetch_member(
+        &self,
+        server_id: u64,
+        member_id: u64,
+    ) -> Result<Member, HandleError> {
+        if let Some(cache) = &self.cache {
+            let member = cache.get_member_by_id(server_id, member_id).await?;
+
+            if let Some(user) = member {
+                return Ok(user);
+            }
+        }
+
+        self.fetch_member(server_id, member_id).await
     }
 
     /// Adds a reaction to a message.

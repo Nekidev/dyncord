@@ -13,59 +13,59 @@
 //! using either a [`MultiplexedConnection`], a [`ConnectionManager`], or a [`ClusterConnection`].
 //!
 //! # Connecting to Redis
-//! 
+//!
 //! [`RedisCache`] supports both single-node setups and cluster setups.
-//! 
+//!
 //! ## Connecting to a Single Node
-//! 
+//!
 //! To connect to a single node, use either [`ConnectionManager`] or [`MultiplexedConnection`].
 //! [`ConnectionManager`] is recommended due to the automatic reconnection support if it
 //! disconnects, unlike [`MultiplexedConnection`].
-//! 
+//!
 //! For this, you'll also need to add the `connection-manager` feature flag to the [`redis`] crate:
-//! 
+//!
 //! ```sh
 //! cargo add redis -F connection-manager
 //! ```
-//! 
+//!
 //! Then initialize a client like follows:
 //!
 //! ```
 //! let client = Client::open("redis://localhost/").unwrap();
 //! let connection = ConnectionManager::new(client).await.unwrap();
-//! 
+//!
 //! let cache = RedisCache::new(connection);
 //! ```
-//! 
+//!
 //! ## Connecting to a Cluster
-//! 
+//!
 //! To connect to a single node, you'll need a [`ClusterConnection`]. For this, you'll also need
 //! the `cluster-async` feature flag enabled in the [`redis`] crate:
-//! 
+//!
 //! ```sh
 //! cargo add redis -F cluster-async
 //! ```
-//! 
+//!
 //! Then intialize a [`ClusterClient`](redis::cluster::ClusterClient) and a [`ClusterConnection`]
 //! like follows:
-//! 
+//!
 //! ```
 //! let client = ClusterClient::new(vec!["redis://node1", "redis://node2"]).unwrap();
 //! let connection = client.get_async_connection().await?;
-//! 
+//!
 //! let cache = RedisCache::new(connection);
 //! ```
-//! 
+//!
 //! # Using the Cache
-//! 
+//!
 //! Once you have initialized your cache, you only need to pass it to your [`Bot`](crate::Bot).
-//! 
+//!
 //! ```
 //! let cache = RedisCache::new(connection);
-//! 
+//!
 //! let bot = Bot::new(()).with_cache(cache);
 //! ```
-//! 
+//!
 //! That's it! Dyncord will now automatically use Redis for caching.
 
 use redis::AsyncCommands;
@@ -74,6 +74,7 @@ use redis::cluster_async::ClusterConnection;
 
 use crate::cache::{Cache, CacheError};
 use crate::utils::DynFuture;
+use crate::wrappers::types::members::Member;
 use crate::wrappers::types::users::User;
 
 /// A Redis-backed cache backend.
@@ -194,6 +195,50 @@ impl Cache for RedisCache {
 
         Box::pin(async move {
             let key = format!("user:name:{user_name}");
+
+            let result: Option<Vec<u8>> = conn.get(key).await?;
+
+            if let Some(result) = result {
+                Ok(Some(bitcode::decode(&result)?))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+
+    fn set_member(&self, server_id: u64, member: Member) -> DynFuture<'_, Result<(), CacheError>> {
+        let mut conn = self.connection.clone();
+
+        Box::pin(async move {
+            let raw = bitcode::encode(&member);
+
+            let _: () = conn
+                .set(format!("member:{}:{}", server_id, member.id), &raw)
+                .await?;
+
+            Ok(())
+        })
+    }
+
+    fn del_member(&self, server_id: u64, member_id: u64) -> DynFuture<'_, Result<(), CacheError>> {
+        let mut conn = self.connection.clone();
+
+        Box::pin(async move {
+            let _: () = conn.del(format!("member:{server_id}:{member_id}")).await?;
+
+            Ok(())
+        })
+    }
+
+    fn get_member_by_id(
+        &self,
+        server_id: u64,
+        member_id: u64,
+    ) -> DynFuture<'_, Result<Option<Member>, CacheError>> {
+        let mut conn = self.connection.clone();
+
+        Box::pin(async move {
+            let key = format!("member:{server_id}:{member_id}");
 
             let result: Option<Vec<u8>> = conn.get(key).await?;
 

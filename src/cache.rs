@@ -156,6 +156,7 @@ use twilight_gateway::Event;
 use twilight_model::gateway::presence::UserOrId;
 
 use crate::utils::DynFuture;
+use crate::wrappers::types::members::Member;
 use crate::wrappers::types::users::User;
 
 /// An error that occurred while on a cache operation.
@@ -197,6 +198,44 @@ pub trait Cache: Send + Sync {
         &self,
         user_name: String,
     ) -> DynFuture<'_, Result<Option<User>, CacheError>>;
+
+    /// Saves a server member in cache.
+    ///
+    /// Arguments:
+    /// * `server_id` - The ID of the server the member is in.
+    /// * `member` - The user data to store in cache.
+    ///
+    /// Returns:
+    /// * `Ok(())` - If no error occurred.
+    /// * `Err(Error)` - If an error occurred.
+    fn set_member(&self, server_id: u64, member: Member) -> DynFuture<'_, Result<(), CacheError>>;
+
+    /// Deletes a member from cache.
+    ///
+    /// Arguments:
+    /// * `server_id` - The ID of the server the member was deleted from.
+    /// * `member_id` - The ID of the user that got removed.
+    ///
+    /// Returns:
+    /// * `Ok(())` - The member was deleted from cache, if there.
+    /// * `Err(Error)` - An error occurred while deleting the member from cache.
+    fn del_member(&self, server_id: u64, member_id: u64) -> DynFuture<'_, Result<(), CacheError>>;
+
+    /// Gets a server member from cache by server and member ID.
+    ///
+    /// Arguments:
+    /// * `server_id` - The ID of the server to get the member from.
+    /// * `member_id` - The user ID of the member to get.
+    ///
+    /// Returns:
+    /// * `Ok(None)` - No error occurred, the member was not in cache.
+    /// * `Ok(Some(Member))` - No error occurred, the member was found in cache.
+    /// * `Err(Error)` - An error occurred while trying to get the member from cache.
+    fn get_member_by_id(
+        &self,
+        server_id: u64,
+        member_id: u64,
+    ) -> DynFuture<'_, Result<Option<Member>, CacheError>>;
 }
 
 /// Processes an event received from the gateway, storing any found useful resources in cache.
@@ -266,6 +305,20 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
                 cache.set_user(user.into()).await?;
             }
 
+            if let Some(partial_member) = event.member.clone()
+                && let Some(mut cached_member) = cache
+                    .get_member_by_id(
+                        event.guild_id.unwrap().get(),
+                        event.author_id().unwrap().get(),
+                    )
+                    .await?
+            {
+                cached_member.update_partially(partial_member);
+                cache
+                    .set_member(event.guild_id.unwrap().get(), cached_member)
+                    .await?;
+            }
+
             // TODO: Update with partial users from `.resolved`.
         }
         Event::InviteCreate(event) => {
@@ -276,22 +329,45 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         Event::InviteDelete(_) => {}
         Event::MemberAdd(event) => {
             cache.set_user(event.user.clone().into()).await?;
+            cache
+                .set_member(event.guild_id.get(), event.member.into())
+                .await?;
         }
         Event::MemberChunk(event) => {
             for member in event.members {
                 cache.set_user(member.user.clone().into()).await?;
+                cache
+                    .set_member(event.guild_id.get(), member.into())
+                    .await?;
             }
         }
         Event::MemberRemove(event) => {
-            cache.set_user(event.user.clone().into()).await?;
+            cache
+                .del_member(event.guild_id.get(), event.user.id.get())
+                .await?;
+            cache.set_user(event.user.into()).await?;
         }
         Event::MemberUpdate(event) => {
             cache.set_user(event.user.clone().into()).await?;
+            cache
+                .set_member(event.guild_id.get(), (*event).clone().into())
+                .await?;
         }
         Event::MessageCreate(event) => {
             cache.set_user(event.author.clone().into()).await?;
 
             // TODO: Partially update from mention data.
+
+            if let Some(partial_member) = event.member.clone()
+                && let Some(mut cached_member) = cache
+                    .get_member_by_id(event.guild_id.unwrap().get(), event.author.id.get())
+                    .await?
+            {
+                cached_member.update_partially(partial_member);
+                cache
+                    .set_member(event.guild_id.unwrap().get(), cached_member)
+                    .await?;
+            }
         }
         Event::MessageDelete(_) => {}
         Event::MessageDeleteBulk(_) => {}
@@ -299,6 +375,17 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         Event::MessagePollVoteRemove(_) => {}
         Event::MessageUpdate(event) => {
             cache.set_user(event.author.clone().into()).await?;
+
+            if let Some(partial_member) = event.member.clone()
+                && let Some(mut cached_member) = cache
+                    .get_member_by_id(event.guild_id.unwrap().get(), event.author.id.get())
+                    .await?
+            {
+                cached_member.update_partially(partial_member);
+                cache
+                    .set_member(event.guild_id.unwrap().get(), cached_member)
+                    .await?;
+            }
         }
         Event::PresenceUpdate(event) => {
             if let UserOrId::User(user) = &event.user {
@@ -323,8 +410,22 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         Event::ThreadCreate(_) => {}
         Event::ThreadDelete(_) => {}
         Event::ThreadListSync(_) => {}
-        Event::ThreadMemberUpdate(_) => {}
-        Event::ThreadMembersUpdate(_) => {}
+        Event::ThreadMemberUpdate(event) => {
+            if let Some(member) = event.member.member {
+                cache
+                    .set_member(event.guild_id.get(), member.into())
+                    .await?;
+            }
+        }
+        Event::ThreadMembersUpdate(event) => {
+            for thread_member in event.added_members {
+                if let Some(member) = thread_member.member {
+                    cache
+                        .set_member(event.guild_id.get(), member.into())
+                        .await?;
+                }
+            }
+        }
         Event::ThreadUpdate(_) => {}
         Event::TypingStart(_) => {}
         Event::UnavailableGuild(_) => {}
