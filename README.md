@@ -1,6 +1,6 @@
 # Dyncord
 
-[Discord Server](https://discord.gg/tkAMaxnRTn) ·
+[Discord Server](https://discord.gg/S79Xn5rCU7) ·
 [GitHub Repository](https://github.com/Nekidev/dyncord) · [Documentation](https://docs.rs/dyncord)
 
 Dyncord is a Rust library for building Discord bots with an axum-like API.
