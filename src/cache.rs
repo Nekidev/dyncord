@@ -313,7 +313,7 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
                     )
                     .await?
             {
-                cached_member.update_partially(partial_member);
+                cached_member.update_from_partial(partial_member);
                 cache
                     .set_member(event.guild_id.unwrap().get(), cached_member)
                     .await?;
@@ -349,9 +349,16 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         }
         Event::MemberUpdate(event) => {
             cache.set_user(event.user.clone().into()).await?;
-            cache
-                .set_member(event.guild_id.get(), (*event).clone().into())
-                .await?;
+
+            if let Some(mut cached_member) = cache
+                .get_member_by_id(event.guild_id.get(), event.user.id.get())
+                .await?
+            {
+                let server_id = event.guild_id.get();
+
+                cached_member.update_from_event(*event);
+                cache.set_member(server_id, cached_member).await?;
+            }
         }
         Event::MessageCreate(event) => {
             cache.set_user(event.author.clone().into()).await?;
@@ -363,7 +370,7 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
                     .get_member_by_id(event.guild_id.unwrap().get(), event.author.id.get())
                     .await?
             {
-                cached_member.update_partially(partial_member);
+                cached_member.update_from_partial(partial_member);
                 cache
                     .set_member(event.guild_id.unwrap().get(), cached_member)
                     .await?;
@@ -381,7 +388,7 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
                     .get_member_by_id(event.guild_id.unwrap().get(), event.author.id.get())
                     .await?
             {
-                cached_member.update_partially(partial_member);
+                cached_member.update_from_partial(partial_member);
                 cache
                     .set_member(event.guild_id.unwrap().get(), cached_member)
                     .await?;
