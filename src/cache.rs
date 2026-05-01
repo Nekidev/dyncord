@@ -393,8 +393,22 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
             }
         }
         Event::RateLimited(_) => {}
-        Event::ReactionAdd(_) => {}
-        Event::ReactionRemove(_) => {}
+        Event::ReactionAdd(event) => {
+            if let Some(member) = &event.member {
+                cache.set_user(member.user.clone().into()).await?;
+                cache
+                    .set_member(event.guild_id.unwrap().get(), member.clone().into())
+                    .await?;
+            }
+        }
+        Event::ReactionRemove(event) => {
+            if let Some(member) = &event.member {
+                cache.set_user(member.user.clone().into()).await?;
+                cache
+                    .set_member(event.guild_id.unwrap().get(), member.clone().into())
+                    .await?;
+            }
+        }
         Event::ReactionRemoveAll(_) => {}
         Event::ReactionRemoveEmoji(_) => {}
         Event::Ready(event) => {
@@ -407,11 +421,30 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         Event::StageInstanceCreate(_) => {}
         Event::StageInstanceDelete(_) => {}
         Event::StageInstanceUpdate(_) => {}
-        Event::ThreadCreate(_) => {}
+        Event::ThreadCreate(event) => {
+            if let Some(thread_member) = &event.member
+                && let Some(member) = &thread_member.member
+            {
+                cache.set_user(member.user.clone().into()).await?;
+                cache
+                    .set_member(event.guild_id.unwrap().get(), member.clone().into())
+                    .await?;
+            }
+        }
         Event::ThreadDelete(_) => {}
-        Event::ThreadListSync(_) => {}
+        Event::ThreadListSync(event) => {
+            for thread_member in event.members {
+                if let Some(member) = thread_member.member {
+                    cache.set_user(member.user.clone().into()).await?;
+                    cache
+                        .set_member(event.guild_id.get(), member.into())
+                        .await?;
+                }
+            }
+        }
         Event::ThreadMemberUpdate(event) => {
             if let Some(member) = event.member.member {
+                cache.set_user(member.user.clone().into()).await?;
                 cache
                     .set_member(event.guild_id.get(), member.into())
                     .await?;
@@ -420,20 +453,44 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         Event::ThreadMembersUpdate(event) => {
             for thread_member in event.added_members {
                 if let Some(member) = thread_member.member {
+                    cache.set_user(member.user.clone().into()).await?;
                     cache
                         .set_member(event.guild_id.get(), member.into())
                         .await?;
                 }
             }
         }
-        Event::ThreadUpdate(_) => {}
-        Event::TypingStart(_) => {}
+        Event::ThreadUpdate(event) => {
+            if let Some(thread_member) = &event.member
+                && let Some(member) = &thread_member.member
+            {
+                cache.set_user(member.user.clone().into()).await?;
+                cache
+                    .set_member(event.guild_id.unwrap().get(), member.clone().into())
+                    .await?;
+            }
+        }
+        Event::TypingStart(event) => {
+            if let Some(member) = &event.member {
+                cache.set_user(member.user.clone().into()).await?;
+                cache
+                    .set_member(event.guild_id.unwrap().get(), member.clone().into())
+                    .await?;
+            }
+        }
         Event::UnavailableGuild(_) => {}
         Event::UserUpdate(event) => {
             cache.set_user(event.0.into()).await?;
         }
         Event::VoiceServerUpdate(_) => {}
-        Event::VoiceStateUpdate(_) => {}
+        Event::VoiceStateUpdate(event) => {
+            if let Some(member) = &event.member {
+                cache.set_user(member.user.clone().into()).await?;
+                cache
+                    .set_member(event.guild_id.unwrap().get(), member.clone().into())
+                    .await?;
+            }
+        }
         Event::WebhooksUpdate(_) => {}
     }
 
