@@ -57,6 +57,9 @@ where
     ///
     /// Dyncord has not yet wrapped all of this client's functions with nicer APIs. Use when
     /// dyncord lacks functionality.
+    /// 
+    /// When dyncord has a wrapper for the desired functionality, prefer using [`Handle`]'s
+    /// functions over this client, as [`Handle`] caches data.
     pub client: DiscordClient,
 
     /// The bot's commands.

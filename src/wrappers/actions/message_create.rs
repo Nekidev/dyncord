@@ -7,7 +7,7 @@ use twilight_model::id::marker::{ChannelMarker, MessageMarker};
 
 use crate::aliases::DiscordClient;
 use crate::utils::DynFuture;
-use crate::wrappers::TwilightError;
+use crate::wrappers::{IntoId, TwilightError};
 
 /// A builder for sending a message.
 pub struct MessageCreate {
@@ -30,12 +30,12 @@ pub struct MessageCreate {
 impl MessageCreate {
     pub(crate) fn new(
         client: DiscordClient,
-        channel_id: Id<ChannelMarker>,
+        channel_id: impl IntoId<ChannelMarker>,
         content: impl Into<String>,
     ) -> Self {
         Self {
             client,
-            channel_id,
+            channel_id: channel_id.into_id(),
             content: content.into(),
             replying_to: None,
             embeds: Vec::new(),
@@ -49,8 +49,8 @@ impl MessageCreate {
     ///
     /// Returns:
     /// [`MessageCreate`] - The message builder with the reply set.
-    pub fn reply(mut self, message_id: Id<MessageMarker>) -> Self {
-        self.replying_to = Some(message_id);
+    pub fn reply(mut self, message_id: impl IntoId<MessageMarker>) -> Self {
+        self.replying_to = Some(message_id.into_id());
         self
     }
 
