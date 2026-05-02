@@ -75,6 +75,7 @@ use redis::cluster_async::ClusterConnection;
 use crate::cache::{Cache, CacheError};
 use crate::utils::DynFuture;
 use crate::wrappers::types::members::Member;
+use crate::wrappers::types::servers::Server;
 use crate::wrappers::types::users::User;
 
 /// A Redis-backed cache backend.
@@ -161,8 +162,16 @@ impl Cache for RedisCache {
     fn set_user(&self, user: User) -> DynFuture<'_, Result<(), CacheError>> {
         let mut conn = self.connection.clone();
 
+        let get_user_by_name = self.get_user_by_name(user.name.clone());
+
         Box::pin(async move {
             let raw = bitcode::encode(&user);
+
+            if let Some(cached_user) = get_user_by_name.await?
+                && user.name != cached_user.name
+            {
+                let _: () = conn.del(format!("user:name:{}", cached_user.name)).await?;
+            }
 
             let _: () = conn.set(format!("user:id:{}", user.id), &raw).await?;
             let _: () = conn.set(format!("user:name:{}", user.name), &raw).await?;
@@ -195,6 +204,47 @@ impl Cache for RedisCache {
 
         Box::pin(async move {
             let key = format!("user:name:{user_name}");
+
+            let result: Option<Vec<u8>> = conn.get(key).await?;
+
+            if let Some(result) = result {
+                Ok(Some(bitcode::decode(&result)?))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+
+    fn set_server(&self, server: Server) -> DynFuture<'_, Result<(), CacheError>> {
+        let mut conn = self.connection.clone();
+
+        Box::pin(async move {
+            let raw = bitcode::encode(&server);
+
+            let _: () = conn.set(format!("server:{}", server.id), &raw).await?;
+
+            Ok(())
+        })
+    }
+
+    fn del_server(&self, server_id: u64) -> DynFuture<'_, Result<(), CacheError>> {
+        let mut conn = self.connection.clone();
+
+        Box::pin(async move {
+            let _: () = conn.del(format!("server:{server_id}")).await?;
+
+            Ok(())
+        })
+    }
+
+    fn get_server_by_id(
+        &self,
+        server_id: u64,
+    ) -> DynFuture<'_, Result<Option<Server>, CacheError>> {
+        let mut conn = self.connection.clone();
+
+        Box::pin(async move {
+            let key = format!("server:{server_id}");
 
             let result: Option<Vec<u8>> = conn.get(key).await?;
 

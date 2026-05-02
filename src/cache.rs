@@ -153,10 +153,12 @@
 use std::error::Error;
 
 use twilight_gateway::Event;
+use twilight_model::gateway::payload::incoming::GuildCreate;
 use twilight_model::gateway::presence::UserOrId;
 
 use crate::utils::DynFuture;
 use crate::wrappers::types::members::Member;
+use crate::wrappers::types::servers::Server;
 use crate::wrappers::types::users::User;
 
 /// An error that occurred while on a cache operation.
@@ -198,6 +200,38 @@ pub trait Cache: Send + Sync {
         &self,
         user_name: String,
     ) -> DynFuture<'_, Result<Option<User>, CacheError>>;
+
+    /// Saves a server in cache.
+    ///
+    /// Arguments:
+    /// * `server` - The server data to store in cache.
+    ///
+    /// Returns:
+    /// * `Ok(())` - If no error occurred.
+    /// * `Err(Error)` - If an error occurred.
+    fn set_server(&self, server: Server) -> DynFuture<'_, Result<(), CacheError>>;
+
+    /// Removes a server's data from cache, if any.
+    ///
+    /// Arguments:
+    /// * `server_id` - The ID of the server to remove.
+    ///
+    /// Returns:
+    /// * `Ok(())` - If no error occurred.
+    /// * `Err(Error)` - If an error occurred.
+    fn del_server(&self, server_id: u64) -> DynFuture<'_, Result<(), CacheError>>;
+
+    /// Gets a server from cache by ID.
+    ///
+    /// Arguments:
+    /// * `server_id` - The ID of the server to get.
+    ///
+    /// Returns:
+    /// * `Ok(None)` - No error occurred, the server was not in cache.
+    /// * `Ok(Some(Server))` - No error occurred, the server was found in cache.
+    /// * `Err(Error)` - An error occurred while trying to get the server from cache.
+    fn get_server_by_id(&self, server_id: u64)
+    -> DynFuture<'_, Result<Option<Server>, CacheError>>;
 
     /// Saves a server member in cache.
     ///
@@ -274,8 +308,21 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         Event::GatewayInvalidateSession(_) => {}
         Event::GatewayReconnect => {}
         Event::GuildAuditLogEntryCreate(_) => {}
-        Event::GuildCreate(_) => {}
-        Event::GuildDelete(_) => {}
+        Event::GuildCreate(event) => match &*event {
+            GuildCreate::Unavailable(_) => {}
+            GuildCreate::Available(guild) => {
+                cache.set_server(guild.clone().into()).await?;
+            }
+        },
+        Event::GuildUpdate(event) => {
+            if let Some(mut server) = cache.get_server_by_id(event.id.get()).await? {
+                server.update_from_partial(event.0);
+                cache.set_server(server).await?;
+            }
+        }
+        Event::GuildDelete(event) => {
+            cache.del_server(event.id.get()).await?;
+        }
         Event::GuildEmojisUpdate(_) => {}
         Event::GuildIntegrationsUpdate(_) => {}
         Event::GuildScheduledEventCreate(event) => {
@@ -296,7 +343,6 @@ pub(crate) async fn process_event(event: Event, cache: &dyn Cache) -> Result<(),
         Event::GuildScheduledEventUserAdd(_) => {}
         Event::GuildScheduledEventUserRemove(_) => {}
         Event::GuildStickersUpdate(_) => {}
-        Event::GuildUpdate(_) => {}
         Event::IntegrationCreate(_) => {}
         Event::IntegrationDelete(_) => {}
         Event::IntegrationUpdate(_) => {}

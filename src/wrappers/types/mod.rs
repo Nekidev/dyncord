@@ -23,3 +23,4 @@ pub mod embeds;
 pub mod members;
 pub mod roles;
 pub mod users;
+pub mod servers;
